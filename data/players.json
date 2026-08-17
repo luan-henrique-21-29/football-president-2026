@@ -1,0 +1,12 @@
+{
+  "snapshot": "2026-08-14",
+  "version": "1.0",
+  "entity": "players",
+  "mode": "EXTERNAL_STRUCTURED_DATAPACK",
+  "source": "https://github.com/dcaribou/transfermarkt-datasets",
+  "runtimeAsset": "players.csv.gz",
+  "fields": ["playerId","name","currentClubId","currentClubName","nationality","dateOfBirth","position","subPosition","foot","height","marketValue","contractExpiration","imageUrl"],
+  "ratings": {"overall":"game-derived","potential":"game-derived"},
+  "note": "Names, clubs, contracts and public profile data come from the external factual datapack. OVR and potential are simulation ratings created by Football President 2026.",
+  "records": []
+}
