@@ -1,44 +1,28 @@
 import { WorldDatabase, SNAPSHOT, formatCurrency, formatDate, contractLabel, normalizedName } from './world.js';
 import { buildCalendar, calculateTeamOverall } from './game.js';
+import { ensureCareerSystems } from './career-systems.js';
+import { saveToSlot, activeSlot, migrateLegacy, deleteSlot } from './save-manager.js';
 
 export { SNAPSHOT, formatCurrency, formatDate, contractLabel, normalizedName };
-export const state = {
-  starter:null, world:null, save:null, screen:'cover', page:'dashboard', loadingWorld:true,
-  playersLoading:false, playersReady:false, selectedClubId:null, selectedMarketPlayerId:null,
-  selectedSquadPlayerId:null, marketPageIndex:0, setupFilters:{search:'',country:'',league:''}
-};
-const SAVE_KEY='football-president-2026-save-v2';
+export const state={starter:null,world:null,save:null,screen:'cover',page:'dashboard',loadingWorld:true,playersLoading:false,playersReady:false,selectedClubId:null,selectedMarketPlayerId:null,selectedSquadPlayerId:null,marketPageIndex:0,activeSlot:1,setupFilters:{search:'',country:'',league:''}};
 const OLD='football-president-2026-save-v1';
 export const esc=v=>String(v??'').replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
 export const num=v=>Number(v)||0;
 export const pct=v=>`${Math.round(v||0)}%`;
-export function currentClub(){return state.world?.findClub(state.save?.clubId)||state.save?.clubSnapshot||state.starter?.clubs?.find(c=>String(c.id)===String(state.save?.clubId));}
+export function currentClub(){return state.save?.clubOverride||state.world?.findClub(state.save?.clubId)||state.save?.clubSnapshot||state.starter?.clubs?.find(c=>String(c.id)===String(state.save?.clubId));}
 export function nextFixture(offset=0){return state.save?.calendar?.[(state.save?.nextFixtureIndex||0)+offset]||null;}
 export const ownedIds=()=>state.save?.acquiredPlayerIds||[];
 export const soldIds=()=>state.save?.soldPlayerIds||[];
 export function gameDate(){return nextFixture()?.date||state.save?.date||SNAPSHOT;}
 export function addYears(date,years){const d=new Date(`${date}T12:00:00Z`);d.setUTCFullYear(d.getUTCFullYear()+years);return d.toISOString().slice(0,10);}
 export function clubBudgetBase(club){let mv=num(club?.marketValue);if(mv>0&&mv<10000)mv*=1e6;if(!mv)mv=Math.pow(Math.max(65,club?.teamOverall||72)-50,3)*22000;return Math.max(8000000,Math.round(mv*.22/100000)*100000);}
-export function squad(){if(!state.world?.players||!state.save)return[];return state.world.playersForClub(state.save.clubId,ownedIds()).filter(p=>!soldIds().includes(String(p.id)));}
+export function squad(){if(!state.world?.players||!state.save)return[];const real=state.world.playersForClub(state.save.clubId,ownedIds()).filter(p=>!soldIds().includes(String(p.id)));return[...real,...(state.save.youth||[]).filter(p=>p.promoted)];}
 export function teamOverall(){const p=squad();return p.length>=11?calculateTeamOverall(p):(currentClub()?.teamOverall||72);}
-export function persist(){if(state.save)localStorage.setItem(SAVE_KEY,JSON.stringify(state.save));}
-export function storePlayerState(players){state.save.playerState||={};players.forEach(p=>state.save.playerState[p.id]={energy:Math.round(p.energy??100),form:Math.round(p.form??70)});}
+export function persist(){if(state.save){ensureCareerSystems(state.save,currentClub());saveToSlot(state.save,state.activeSlot||1);}}
+export function storePlayerState(players){state.save.playerState||={};players.filter(p=>!p.youth).forEach(p=>state.save.playerState[p.id]={energy:Math.round(p.energy??100),form:Math.round(p.form??70)});}
 function syncPlayerState(players){if(!state.save)return;state.save.playerState||={};state.save.playerContracts||={};players.forEach(p=>{const s=state.save.playerState[p.id];if(s){p.energy=s.energy??p.energy;p.form=s.form??p.form;}const c=state.save.playerContracts[p.id];if(c?.until)p.contractExpiration=c.until;});}
 export async function ensurePlayers(render){if(state.playersReady||state.playersLoading)return;state.playersLoading=true;render?.();try{await state.world.ensurePlayers();syncPlayerState(state.world.players||[]);state.playersReady=true;}catch(e){console.error(e);}finally{state.playersLoading=false;render?.();}}
 function findByName(name){const key=normalizedName(name);return state.world.clubs.find(c=>normalizedName(c.name)===key)||state.world.clubs.find(c=>normalizedName(c.name).includes(key)||key.includes(normalizedName(c.name)));}
-export async function initState(render){
-  state.starter=await fetch('./data/clubs.json').then(r=>r.json());state.world=new WorldDatabase(state.starter);
-  try{state.save=JSON.parse(localStorage.getItem(SAVE_KEY));}catch{}
-  if(!state.save){try{const old=JSON.parse(localStorage.getItem(OLD));if(old?.clubId)localStorage.removeItem(OLD);}catch{}}
-  render();await state.world.hydrateClubs();state.loadingWorld=false;
-  state.selectedClubId=state.selectedClubId||state.world.clubs[0]?.id||state.starter.clubs[0]?.id;
-  if(state.save&&!state.world.findClub(state.save.clubId)){const c=findByName(state.save.clubSnapshot?.name||state.save.clubName||'');if(c)state.save.clubId=c.id;}
-  render();
-}
-export function createCareerFromForm(){
-  const c=state.world.findClub(state.selectedClubId);if(!c)return false;const base=clubBudgetBase(c);
-  const same=state.world.clubsInCompetition(c.competitionId);const competitionClubs=same.length>2?same:state.world.clubs.filter(x=>x.league===c.league);
-  const name=document.querySelector('#presidentName')?.value.trim()||'Presidente';
-  state.save={version:2,databaseSnapshot:SNAPSHOT,president:{name,nationality:document.querySelector('#nationality')?.value.trim()||'Brasil',style:document.querySelector('#presidentStyle')?.value||'Personalizado',reputation:50},clubId:c.id,clubName:c.name,clubSnapshot:c,season:'2026/27',date:SNAPSHOT,cash:Math.round(base*1.45),transferBudget:base,wageBudgetWeekly:Math.round(base*.006),fanTrust:68,boardTrust:72,coach:{name:c.coachName||'Técnico não informado',original:true,hiredDate:SNAPSHOT,contractUntil:null},calendar:buildCalendar(c,competitionClubs),nextFixtureIndex:0,table:{played:0,wins:0,draws:0,losses:0,gf:0,ga:0,points:0},matches:[],news:[{date:SNAPSHOT,title:'Nova presidência',body:`${name} assume o ${c.name}.`},{date:SNAPSHOT,title:'Treinador mantido',body:c.coachName?`${c.coachName} inicia a carreira no comando técnico.`:'A fonte atual não informou o treinador.'}],transactions:[],acquiredPlayerIds:[],soldPlayerIds:[],playerContracts:{},playerState:{},achievements:[]};persist();return true;
-}
-export function resetCareer(){localStorage.removeItem(SAVE_KEY);state.save=null;state.screen='cover';state.page='dashboard';state.playersReady=false;state.selectedMarketPlayerId=null;state.selectedSquadPlayerId=null;}
+export async function initState(render){state.starter=await fetch('./data/clubs.json').then(r=>r.json());state.world=new WorldDatabase(state.starter);state.activeSlot=activeSlot();state.save=migrateLegacy();if(!state.save){try{const old=JSON.parse(localStorage.getItem(OLD));if(old?.clubId)localStorage.removeItem(OLD);}catch{}}render();await state.world.hydrateClubs();state.loadingWorld=false;state.selectedClubId=state.selectedClubId||state.world.clubs[0]?.id||state.starter.clubs[0]?.id;if(state.save&&!state.world.findClub(state.save.clubId)){const c=findByName(state.save.clubSnapshot?.name||state.save.clubName||'');if(c)state.save.clubId=c.id;}if(state.save)ensureCareerSystems(state.save,currentClub());render();}
+export function createCareerFromForm(){const c=state.world.findClub(state.selectedClubId);if(!c)return false;const base=clubBudgetBase(c),same=state.world.clubsInCompetition(c.competitionId),competitionClubs=same.length>2?same:state.world.clubs.filter(x=>x.league===c.league),name=document.querySelector('#presidentName')?.value.trim()||'Presidente';state.save={version:3,databaseSnapshot:SNAPSHOT,president:{name,nationality:document.querySelector('#nationality')?.value.trim()||'Brasil',birthDate:document.querySelector('#presidentBirth')?.value||'1990-01-01',style:document.querySelector('#presidentStyle')?.value||'Personalizado',reputation:50},clubId:c.id,clubName:c.name,clubSnapshot:c,season:'2026/27',date:SNAPSHOT,cash:Math.round(base*1.45),transferBudget:base,wageBudgetWeekly:Math.round(base*.006),fanTrust:68,boardTrust:72,coach:{name:c.coachName||'Técnico não informado',original:true,hiredDate:SNAPSHOT,contractUntil:null,status:'EMPLOYED'},calendar:buildCalendar(c,competitionClubs),nextFixtureIndex:0,table:{played:0,wins:0,draws:0,losses:0,gf:0,ga:0,points:0},matches:[],news:[{date:SNAPSHOT,title:'Nova presidência',body:`${name} assume o ${c.name}.`},{date:SNAPSHOT,title:'Treinador mantido',body:c.coachName?`${c.coachName} inicia a carreira no comando técnico.`:'A fonte atual não informou o treinador.'}],transactions:[],acquiredPlayerIds:[],soldPlayerIds:[],playerContracts:{},playerState:{},achievements:[]};ensureCareerSystems(state.save,c);persist();return true;}
+export function resetCareer(){deleteSlot(state.activeSlot||1);state.save=null;state.screen='cover';state.page='dashboard';state.playersReady=false;state.selectedMarketPlayerId=null;state.selectedSquadPlayerId=null;}
