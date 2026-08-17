@@ -1,0 +1,43 @@
+name: Validate Football President
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          set -e
+          for f in src/*.js; do
+            echo "Checking $f"
+            node --check "$f"
+          done
+      - name: Validate JSON datapacks
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          for (const f of fs.readdirSync('data').filter(x => x.endsWith('.json'))) {
+            JSON.parse(fs.readFileSync(`data/${f}`, 'utf8'));
+            console.log(`OK data/${f}`);
+          }
+          NODE
+      - name: Verify relative imports
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),path=require('path');
+          for(const f of fs.readdirSync('src').filter(x=>x.endsWith('.js'))){
+            const text=fs.readFileSync(`src/${f}`,'utf8');
+            for(const m of text.matchAll(/from\s+['"](\.\/.+?)['"]/g)){
+              const target=path.normalize(path.join('src',m[1]));
+              if(!fs.existsSync(target)) throw new Error(`${f}: missing ${target}`);
+            }
+          }
+          console.log('All relative imports exist');
+          NODE
