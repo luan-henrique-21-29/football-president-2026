@@ -1,0 +1,10 @@
+{
+  "snapshot": "2026-08-14",
+  "version": "1.0",
+  "entity": "stadiums",
+  "mode": "LIVE_FROM_CLUB_DATAPACK",
+  "source": "Runtime club dataset",
+  "fields": ["clubId","stadiumName","capacity","country","city"],
+  "note": "Real stadium names and known capacities are hydrated with club data; future stadium projects exist only inside saves.",
+  "records": []
+}
