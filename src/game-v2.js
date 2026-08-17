@@ -24,7 +24,7 @@ export function coachSelection(squad,fixture,nextFixture,teamOverall,coach={}){
 }
 
 export function simulateFixture({save,fixture,nextFixture,squad,opponentClub}){
- const teamOverall=base.calculateTeamOverall(squad),coach={...save.coach,reputation:save.coach?.reputation||Math.max(60,Math.min(92,teamOverall))},m=coachMatchModifiers(coach),plan=coachSelection(squad,fixture,nextFixture,teamOverall,coach),opp=fixture.opponentOverall||opponentClub?.teamOverall||72,home=fixture.home?.18:-.06,diff=(plan.lineupOverall-opp)/10;
+ const teamOverall=base.calculateTeamOverall(squad),coach={...save.coach,reputation:save.coach?.reputation||Math.max(60,Math.min(92,teamOverall))},m=coachMatchModifiers(coach),plan=coachSelection(squad,fixture,nextFixture,teamOverall,coach),opp=fixture.opponentOverall||opponentClub?.teamOverall||72,home=fixture.home ? .18 : -.06,diff=(plan.lineupOverall-opp)/10;
  const attack=m.attackBias*.22+m.pressBias*.08,defensiveRisk=m.attackBias*.10-m.profile.pragmatism/700;
  const expectedFor=1.25+diff*.42+home+attack,expectedAgainst=1.18-diff*.36-home*.45+defensiveRisk;
  const random=rng(hash(`${save.clubId}-${fixture.id}-${save.season}-${save.matches?.length||0}-${coach.name}`)+Date.now()%9973),gf=goals(expectedFor,random),ga=goals(expectedAgainst,random),possession=clamp(Math.round(50+(plan.lineupOverall-opp)*1.2+m.pressBias*8+(random()-.5)*8),28,72),shots=Math.max(3,Math.round(8+expectedFor*4+random()*5)),shotsAgainst=Math.max(3,Math.round(8+expectedAgainst*4+random()*5)),xg=Math.max(.2,Math.round((expectedFor+(random()-.5)*.35)*100)/100),xga=Math.max(.2,Math.round((expectedAgainst+(random()-.5)*.35)*100)/100);
