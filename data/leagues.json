@@ -1,0 +1,21 @@
+{
+  "snapshot": "2026-08-14",
+  "version": "1.0",
+  "note": "Canonical gameplay rules for the mandatory playable leagues. Club membership is hydrated from the factual world database at runtime.",
+  "leagues": [
+    {"id":"GB1","name":"Premier League","country":"England","tier":1,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":38,"promotion":0,"relegation":3,"playoffs":false,"pairedLeagueId":"GB2"},
+    {"id":"GB2","name":"EFL Championship","country":"England","tier":2,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":46,"promotion":2,"relegation":3,"playoffs":true,"playoffPromotionPlaces":1,"pairedLeagueId":"GB1"},
+    {"id":"ES1","name":"LaLiga","country":"Spain","tier":1,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":38,"promotion":0,"relegation":3,"playoffs":false,"pairedLeagueId":"ES2"},
+    {"id":"ES2","name":"Segunda División","country":"Spain","tier":2,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":42,"promotion":2,"relegation":4,"playoffs":true,"playoffPromotionPlaces":1,"pairedLeagueId":"ES1"},
+    {"id":"FR1","name":"Ligue 1","country":"France","tier":1,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":34,"promotion":0,"relegation":2,"playoffs":false,"relegationPlayoff":true,"pairedLeagueId":"FR2"},
+    {"id":"FR2","name":"Ligue 2","country":"France","tier":2,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":34,"promotion":2,"relegation":2,"playoffs":true,"pairedLeagueId":"FR1"},
+    {"id":"IT1","name":"Serie A","country":"Italy","tier":1,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":38,"promotion":0,"relegation":3,"playoffs":false,"pairedLeagueId":"IT2"},
+    {"id":"IT2","name":"Serie B","country":"Italy","tier":2,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":38,"promotion":2,"relegation":3,"playoffs":true,"pairedLeagueId":"IT1"},
+    {"id":"BRA1","name":"Brasileirão Série A","country":"Brazil","tier":1,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":38,"promotion":0,"relegation":4,"playoffs":false,"pairedLeagueId":"BRA2"},
+    {"id":"BRA2","name":"Brasileirão Série B","country":"Brazil","tier":2,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":38,"promotion":4,"relegation":4,"playoffs":false,"pairedLeagueId":"BRA1"},
+    {"id":"SA1","name":"Saudi Pro League","country":"Saudi Arabia","tier":1,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":34,"promotion":0,"relegation":3,"playoffs":false,"pairedLeagueId":"SA2"},
+    {"id":"SA2","name":"Saudi First Division League","country":"Saudi Arabia","tier":2,"format":"DOUBLE_ROUND_ROBIN","regularSeasonGames":34,"promotion":3,"relegation":3,"playoffs":true,"pairedLeagueId":"SA1"},
+    {"id":"MLS1","name":"Major League Soccer","country":"United States","tier":1,"format":"CONFERENCES_PLAYOFFS","regularSeasonGames":34,"promotion":0,"relegation":0,"playoffs":true,"conferenceSystem":true,"final":"MLS Cup","pairedLeagueId":null},
+    {"id":"USL1","name":"USL Championship","country":"United States","tier":2,"format":"CONFERENCES_PLAYOFFS","regularSeasonGames":34,"promotion":0,"relegation":0,"playoffs":true,"conferenceSystem":true,"pairedLeagueId":null,"note":"No automatic promotion/relegation with MLS in standard mode."}
+  ]
+}
