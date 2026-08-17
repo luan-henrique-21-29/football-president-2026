@@ -5,7 +5,7 @@ import { squadPage } from './football-pages.js';
 import { coachPage } from './coach-v2.js';
 import { marketPage } from './market-v2.js';
 import { dashboardPage,financesPage,facilitiesPage,staffPage,careerPage,achievementsPage,settingsPage } from './management-pages.js';
-import { bind } from './actions.js';
+import { bind } from './actions-final.js';
 const app=document.querySelector('#app');
 const pages={dashboard:dashboardPage,club:clubPage,squad:squadPage,coach:coachPage,calendar:calendarPage,market:marketPage,staff:staffPage,finances:financesPage,facilities:facilitiesPage,career:careerPage,achievements:achievementsPage,news:newsPage,database:databasePage,settings:settingsPage};
 export function render(){if(state.screen==='cover'){app.innerHTML=cover();bindCover();return;}if(!state.save){app.innerHTML=setup();bindSetup();return;}app.innerHTML=frame((pages[state.page]||dashboardPage)());bind(render);}
