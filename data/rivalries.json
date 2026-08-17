@@ -1,0 +1,16 @@
+{
+  "snapshot": "2026-08-14",
+  "version": "1.0",
+  "entity": "rivalries",
+  "note": "Only verified real rivalries should be added as factual initial records. Gameplay may also infer high-importance matches from same-city or known competition context only when explicitly tagged as simulation inference.",
+  "records": [
+    {"clubs":["Manchester United","Liverpool"],"name":"North-West rivalry","importance":1.5},
+    {"clubs":["Arsenal","Tottenham Hotspur"],"name":"North London derby","importance":1.5},
+    {"clubs":["Real Madrid","FC Barcelona"],"name":"El Clásico","importance":1.6},
+    {"clubs":["Real Madrid","Atlético de Madrid"],"name":"Madrid derby","importance":1.5},
+    {"clubs":["Inter Milan","AC Milan"],"name":"Derby della Madonnina","importance":1.5},
+    {"clubs":["Corinthians","Palmeiras"],"name":"Derby Paulista","importance":1.6},
+    {"clubs":["Flamengo","Fluminense"],"name":"Fla-Flu","importance":1.5},
+    {"clubs":["Grêmio","Internacional"],"name":"Grenal","importance":1.6}
+  ]
+}
