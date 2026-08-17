@@ -1,0 +1,10 @@
+{
+  "snapshot": "2026-08-14",
+  "version": "1.0",
+  "entity": "coaches",
+  "mode": "LIVE_FROM_CLUB_DATAPACK",
+  "source": "Transfermarkt structured dataset through the runtime world database",
+  "fields": ["name","currentClub","status","contractExpiration","reputation","preferredFormation","youthDevelopment","rotation","pressing","attackingRisk"],
+  "note": "Real coach names and current clubs are hydrated from the factual club datapack. Gameplay tactical attributes may be simulation-derived and are labeled as game ratings rather than factual biographical claims.",
+  "records": []
+}
