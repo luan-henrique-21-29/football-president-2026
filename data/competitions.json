@@ -1,0 +1,23 @@
+{
+  "snapshot": "2026-08-14",
+  "version": "1.0",
+  "competitions": [
+    {"id":"FA_CUP","name":"FA Cup","region":"England","type":"NATIONAL_CUP","format":"KNOCKOUT"},
+    {"id":"COPA_DEL_REY","name":"Copa del Rey","region":"Spain","type":"NATIONAL_CUP","format":"KNOCKOUT"},
+    {"id":"COUPE_DE_FRANCE","name":"Coupe de France","region":"France","type":"NATIONAL_CUP","format":"KNOCKOUT"},
+    {"id":"COPPA_ITALIA","name":"Coppa Italia","region":"Italy","type":"NATIONAL_CUP","format":"KNOCKOUT"},
+    {"id":"COPA_DO_BRASIL","name":"Copa do Brasil","region":"Brazil","type":"NATIONAL_CUP","format":"KNOCKOUT_TWO_LEGS_WHEN_APPLICABLE"},
+    {"id":"KINGS_CUP","name":"King's Cup","region":"Saudi Arabia","type":"NATIONAL_CUP","format":"KNOCKOUT"},
+    {"id":"US_OPEN_CUP","name":"U.S. Open Cup","region":"United States","type":"NATIONAL_CUP","format":"KNOCKOUT"},
+    {"id":"UCL","name":"UEFA Champions League","region":"Europe","type":"CONTINENTAL","format":"LEAGUE_PHASE_AND_KNOCKOUT"},
+    {"id":"UEL","name":"UEFA Europa League","region":"Europe","type":"CONTINENTAL","format":"LEAGUE_PHASE_AND_KNOCKOUT"},
+    {"id":"UECL","name":"UEFA Conference League","region":"Europe","type":"CONTINENTAL","format":"LEAGUE_PHASE_AND_KNOCKOUT"},
+    {"id":"LIBERTADORES","name":"CONMEBOL Libertadores","region":"South America","type":"CONTINENTAL","format":"GROUPS_AND_KNOCKOUT"},
+    {"id":"SUDAMERICANA","name":"CONMEBOL Sudamericana","region":"South America","type":"CONTINENTAL","format":"GROUPS_AND_KNOCKOUT"},
+    {"id":"CONCACAF_CC","name":"Concacaf Champions Cup","region":"North America","type":"CONTINENTAL","format":"KNOCKOUT"},
+    {"id":"AFC_ELITE","name":"AFC Champions League Elite","region":"Asia","type":"CONTINENTAL","format":"LEAGUE_STAGE_AND_KNOCKOUT"},
+    {"id":"AFC_TWO","name":"AFC Champions League Two","region":"Asia","type":"CONTINENTAL","format":"GROUPS_AND_KNOCKOUT"},
+    {"id":"CLUB_WORLD_CUP","name":"FIFA Club World Cup","region":"World","type":"WORLD_CLUB","format":"CURRENT_ERA_FORMAT"},
+    {"id":"WORLD_CUP","name":"FIFA World Cup","region":"World","type":"NATIONAL_TEAM","format":"GROUPS_AND_KNOCKOUT"}
+  ]
+}
