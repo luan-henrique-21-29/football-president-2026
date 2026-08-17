@@ -1,0 +1,5 @@
+import {coachPage as baseCoachPage,coachResults} from './coach-v2.js';
+import {state,esc} from './state.js';
+import {coachGameplayProfile} from './coach-profile.js';
+export {coachResults};
+export function coachPage(){const p=coachGameplayProfile({...state.save.coach,reputation:state.save.coach?.reputation||72});return `${baseCoachPage()}<h2 class="section-title">Identidade no simulador</h2><div class="card coach-identity"><div><span class="eyebrow">ESTILO DE JOGO</span><h2>${esc(p.style)}</h2><p>Formação preferida do motor: <b>${esc(p.preferredFormation)}</b></p></div><div class="coach-ratings"><div><span>Rodízio</span><b>${p.rotation}</b></div><div><span>Pressão</span><b>${p.pressing}</b></div><div><span>Risco ofensivo</span><b>${p.attackingRisk}</b></div><div><span>Pragmatismo</span><b>${p.pragmatism}</b></div><div><span>Jovens</span><b>${p.youthDevelopment}</b></div><div><span>Adaptação</span><b>${p.adaptability}</b></div></div><p class="subtle">Essas notas são atributos de gameplay derivados pelo Football President 2026; não são apresentadas como dados factuais do treinador real.</p></div>`;}
