@@ -1,5 +1,6 @@
 import { state,initState,ensurePlayers,createCareerFromForm } from './state.js';
-import { cover,clubPage,calendarPage,newsPage,databasePage } from './views.js';
+import { clubPage,calendarPage,newsPage,databasePage } from './views.js';
+import { cover } from './brand-ui.js';
 import { setup,frame } from './shell-v2.js';
 import { squadPage } from './squad-v2.js';
 import { coachPage } from './coach-v3.js';
