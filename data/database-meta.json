@@ -1,12 +1,12 @@
 {
   "gameSnapshot": "2026-08-18",
-  "syncedAt": "2026-08-18T17:01:10Z",
+  "syncedAt": "2026-08-18T17:05:14Z",
   "source": "dcaribou/transfermarkt-datasets (weekly Transfermarkt dataset)",
   "playerCount": 19339,
   "clubCount": 796,
   "transferCount": 6771,
   "overallNote": "OVR e potencial são índices internos do jogo. Valores de mercado, contratos e transferências vêm do datapack de futebol e não são ratings da EA.",
-  "liveSquadsSyncedAt": "2026-08-18T17:02:46Z",
+  "liveSquadsSyncedAt": "2026-08-18T17:06:47Z",
   "liveSquadClubsSuccess": 0,
   "liveSquadClubsFailed": 220
 }
