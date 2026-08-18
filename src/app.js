@@ -13,7 +13,9 @@ import { worldPage } from './world-page.js';
 import { boardPage } from './board-page.js';
 import { financesPage,facilitiesPage,staffPage,careerPage,achievementsPage,settingsPage } from './management-pages.js';
 import { bind } from './actions-board.js';
+import { installDecisionUI } from './decision-ui.js';
 const app=document.querySelector('#app');
+installDecisionUI();
 const pages={dashboard:dashboardPage,standings:standingsPage,statistics:statisticsPage,jobs:jobsPage,competitions:competitionsPage,board:boardPage,world:worldPage,club:clubPage,squad:squadPage,coach:coachPage,calendar:calendarPage,market:marketPage,staff:staffPage,finances:financesPage,facilities:facilitiesPage,career:careerPage,achievements:achievementsPage,news:newsPage,database:databasePage,settings:settingsPage};
 export function render(){if(state.screen==='cover'){app.innerHTML=cover();bindCover();return;}if(!state.save){app.innerHTML=setup();bindSetup();return;}app.innerHTML=frame((pages[state.page]||dashboardPage)());bind(render);}
 function bindCover(){document.querySelector('#continueCareer')?.addEventListener('click',()=>{state.screen='game';state.page='dashboard';render();ensurePlayers(render);});document.querySelector('#newCareer')?.addEventListener('click',()=>{state.save=null;state.screen='setup';render();});}
