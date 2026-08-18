@@ -8,11 +8,14 @@ on:
       - 'tests/**/*.mjs'
       - 'package.json'
       - '*.js'
+      - '*.css'
+      - 'index.html'
       - '.github/workflows/js-syntax-check.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   syntax:
@@ -25,6 +28,8 @@ jobs:
         with:
           node-version: '22'
       - name: Check JavaScript syntax
+        id: syntax
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -33,4 +38,27 @@ jobs:
             node --check "$file"
           done < <(find src -type f -name '*.js' -print0)
       - name: Gameplay smoke tests
+        id: gameplay
+        continue-on-error: true
         run: npm test
+      - name: Publish validation status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          if [ "${{ steps.syntax.outcome }}" = "success" ] && [ "${{ steps.gameplay.outcome }}" = "success" ]; then
+            state=success
+            description='Syntax and gameplay smoke tests passed'
+          else
+            state=failure
+            description='Syntax or gameplay smoke tests failed'
+          fi
+          curl -sS -L -X POST \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"${state}\",\"context\":\"club-dynasty/gameplay\",\"description\":\"${description}\"}"
+      - name: Fail job when validation failed
+        if: steps.syntax.outcome != 'success' || steps.gameplay.outcome != 'success'
+        run: exit 1
