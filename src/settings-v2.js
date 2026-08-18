@@ -1,0 +1,20 @@
+import {settingsPage as baseSettingsPage} from './management-pages.js';
+import {getPreferences,currencyOptions,languageOptions,exchangeMeta,t} from './preferences.js';
+
+export function settingsPage(){
+ const p=getPreferences(),fx=exchangeMeta();
+ let base=baseSettingsPage();
+ base=base.replace(/<div class="field"><label>Moeda<\/label><select id="currencySetting">[\s\S]*?<\/select><\/div>/,'<input type="hidden" id="currencySetting" value="'+p.currency+'">');
+ base=base.replace('<button class="button secondary" id="savePreferences">Salvar preferências</button>',`${preferencePanel(p,fx)}<button class="button secondary" id="savePreferences">Salvar preferências da carreira</button>`);
+ return base;
+}
+function preferencePanel(p,fx){return `<div class="cd-game-settings">
+ <div class="cd-setting-title"><div><span class="eyebrow">CLUB DYNASTY 26</span><h2>Preferências do jogo</h2><p>Estas opções também ficam disponíveis no menu inicial.</p></div><button class="button ghost" data-open-terms="true">${t('terms')}</button></div>
+ <div class="cd-setting-grid">
+  <label><span>${t('currency')}</span><select data-pref="currency" id="gameCurrency">${currencyOptions().map(x=>`<option value="${x.code}" ${x.code===p.currency?'selected':''}>${x.label}</option>`).join('')}</select><small>Todos os valores do jogo são convertidos a partir do euro.</small></label>
+  <label><span>${t('language')}</span><select data-pref="language" id="gameLanguage">${languageOptions().map(x=>`<option value="${x.code}" ${x.code===p.language?'selected':''}>${x.label}</option>`).join('')}</select><small>Altera menus principais, datas e formatação.</small></label>
+  <label><span>${t('sound')}</span><select data-pref="sound" id="gameSound"><option value="true" ${p.sound?'selected':''}>Ligado</option><option value="false" ${!p.sound?'selected':''}>Desligado</option></select><small>Sons de interface e confirmações.</small></label>
+  <label><span>Volume</span><input data-pref="volume" id="gameVolume" type="range" min="0" max="1" step="0.05" value="${p.volume}"><small>${Math.round(p.volume*100)}%</small></label>
+ </div>
+ <div class="cd-rate-note"><b>Câmbio</b><span>Base EUR • referência ${fx.date||'—'} • ${fx.source||'ECB'}</span></div>
+ </div>`}
