@@ -1,3 +1,4 @@
+import './player-extra-data.js';
 import {state,persist} from './state.js';
 async function loadJson(path){try{const r=await fetch(path,{cache:'no-store'});return r.ok?await r.json():null}catch{return null}}
 function syncOriginalCareerCoach(world){const save=state.save,club=world?.findClub?.(save?.clubId);if(!save?.coach||!club?.coachName||save.coach.original===false)return false;let changed=false;if(save.coach.name!==club.coachName){save.coach.name=club.coachName;changed=true}if(club.coachContractUntil&&save.coach.contractUntil!==club.coachContractUntil){save.coach.contractUntil=club.coachContractUntil;changed=true}if(club.coachImage&&save.coach.image!==club.coachImage){save.coach.image=club.coachImage;changed=true}if(changed){save.coach.original=true;save.coach.dataSource=club.coachSource||'current-coach-datapack';persist()}return changed}
