@@ -1,0 +1,8 @@
+/* Final image-quality layer. Keep artwork/photos sharp and never blur them. */
+.cd-cover-art,.cd-setup-art img,.cd-setup-hero>img,.cd-main-logo,.cd-brand-mark img,.fp-photo img,.cd-club-crest img,.cd-league-logo img,.coach-profile img,.player-head img,.cd-pitch-player img,.cd-bench-player img{filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;transform:none;image-rendering:auto;opacity:1}
+.cd-cover-vignette,.cd-cover-screen.light-identity .cd-cover-vignette,.cd-setup-art:after,.cd-setup-hero:after{display:none!important}
+.cd-cover-art,.cd-setup-art img,.cd-setup-hero>img{object-fit:cover}
+.fp-photo{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}.fp-photo img{width:100%!important;height:100%!important;object-fit:cover!important;object-position:center top!important;will-change:auto!important}
+.cd-club-crest img,.cd-league-logo img,.cd-main-logo,.cd-brand-mark img{object-fit:contain!important;object-position:center!important}
+.cd-action,.cd-action.glass,.cd-front-prefs,.sidebar,.topbar{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+@media(max-width:760px){.cd-cover-art{filter:none!important;-webkit-filter:none!important}.cd-cover-screen{background:#f3fbff!important}}
