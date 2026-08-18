@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {calculateTeamOverall,coachSelection,simulateFixture,applyMatchFitness,knockoutShootout} from '../src/game-v5.js';
+import {calculateTeamOverall,coachSelection,simulateFixture,applyMatchFitness,knockoutShootout} from '../src/game-v6.js';
+import {createPresidentLineup} from '../src/lineup-state.js';
 import {availableForFixture,processPlayerMatch} from '../src/player-career.js';
 
 function player(id,position,overall,extra={}){
@@ -41,6 +42,15 @@ assert.equal(new Set(a.substitutions.map(s=>s.inId)).size,a.substitutions.length
 const fitnessSquad=user.map(p=>({...p}));
 applyMatchFitness(fitnessSquad,a.plan.starters,a.plan.bench,3);
 assert.ok(fitnessSquad.every(p=>p.energy>=35&&p.energy<=100),'post-match energy must stay in valid range');
+
+const manualSave={...save,coach:{...save.coach},presidentLineup:createPresidentLineup(plan,user,'4-4-2')};
+const manualA=simulateFixture({save:manualSave,fixture:{...fixture,id:'MANUAL1'},nextFixture:next,squad:user,opponentClub:weakOpp});
+const manualB=simulateFixture({save:manualSave,fixture:{...fixture,id:'MANUAL1'},nextFixture:next,squad:user,opponentClub:weakOpp});
+assert.equal(manualA.manualLineupApplied,true,'president lineup must be applied to the match');
+assert.equal(manualA.plan.preferredFormation,'4-4-2','manual formation must reach the match engine');
+assert.equal(manualA.plan.starters.length,11,'manual lineup must keep exactly 11 starters');
+assert.equal(new Set(manualA.plan.starters.map(p=>String(p.id))).size,11,'manual starters must be unique');
+assert.deepEqual({gf:manualA.gf,ga:manualA.ga,seed:manualA.matchSeed},{gf:manualB.gf,ga:manualB.ga,seed:manualB.matchSeed},'manual lineup result must remain deterministic on refresh');
 
 const suspensionSquad=squad('ban',81),banned=suspensionSquad[3],disciplineSave={clubId:'discipline',season:'2026/27',matches:[],coach:{name:'Discipline Coach',reputation:80},playerCareer:{[banned.id]:careerStat(1)},news:[]};
 const available=availableForFixture(suspensionSquad,disciplineSave,fixture.date);
