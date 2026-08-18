@@ -1,4 +1,4 @@
-import { WorldDatabase, SNAPSHOT, contractLabel, normalizedName } from './world.js';
+import { WorldDatabase, contractLabel, normalizedName } from './world.js';
 import { buildCalendar, calculateTeamOverall } from './game.js';
 import { ensureCareerSystems } from './career-systems.js';
 import { annotatePlayers } from './player-career.js';
@@ -6,7 +6,8 @@ import { ensureWorldSimulation,applyWorldOverrides } from './world-sim.js';
 import { saveToSlot, activeSlot, migrateLegacy, deleteSlot } from './save-manager.js';
 import {loadExchangeRates,formatMoneyEUR,formatDateLocalized,syncFromSave,writeToSave,getPreferences} from './preferences.js';
 
-export { SNAPSHOT, contractLabel, normalizedName };
+export const SNAPSHOT='2026-08-18';
+export { contractLabel, normalizedName };
 export const formatCurrency=value=>formatMoneyEUR(value);
 export const formatDate=value=>formatDateLocalized(value);
 export const state={starter:null,world:null,save:null,screen:'cover',page:'dashboard',loadingWorld:true,playersLoading:false,playersReady:false,selectedClubId:null,selectedMarketPlayerId:null,selectedSquadPlayerId:null,marketPageIndex:0,activeSlot:1,setupFilters:{search:'',country:'',league:''}};
