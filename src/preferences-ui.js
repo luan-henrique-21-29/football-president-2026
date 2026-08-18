@@ -1,0 +1,20 @@
+import {state,persist} from './state.js';
+import {setPreference,getPreferences,writeToSave,playUISound,t,exchangeMeta} from './preferences.js';
+
+export function bindPreferenceUI(render){
+ document.querySelectorAll('[data-pref]').forEach(el=>el.addEventListener('change',()=>{
+   const name=el.dataset.pref;setPreference(name,el.value);if(state.save){writeToSave(state.save);persist();}
+   playUISound('confirm');render?.();
+ }));
+ document.querySelectorAll('[data-open-terms]').forEach(el=>el.addEventListener('click',()=>{playUISound('tap');showTerms()}));
+ if(!window.__cdSoundClicks){window.__cdSoundClicks=true;document.addEventListener('click',e=>{if(e.target.closest('button,.nav-btn,[role="button"]')&&!e.target.closest('.cd-terms-layer'))playUISound('tap')},true)}
+}
+
+export function frontPreferences(){const p=getPreferences(),fx=exchangeMeta();return `<div class="cd-front-prefs">
+ <label><span>${t('currency')}</span><select data-pref="currency"><option value="EUR" ${p.currency==='EUR'?'selected':''}>EUR €</option><option value="USD" ${p.currency==='USD'?'selected':''}>USD $</option><option value="GBP" ${p.currency==='GBP'?'selected':''}>GBP £</option><option value="BRL" ${p.currency==='BRL'?'selected':''}>BRL R$</option></select></label>
+ <label><span>${t('language')}</span><select data-pref="language"><option value="pt-BR" ${p.language==='pt-BR'?'selected':''}>PT-BR</option><option value="en-US" ${p.language==='en-US'?'selected':''}>EN</option><option value="es-ES" ${p.language==='es-ES'?'selected':''}>ES</option></select></label>
+ <label><span>${t('sound')}</span><select data-pref="sound"><option value="true" ${p.sound?'selected':''}>ON</option><option value="false" ${!p.sound?'selected':''}>OFF</option></select></label>
+ <button data-open-terms="true">${t('terms')}</button><small>Câmbio ${fx.date||'—'}</small>
+ </div>`}
+
+function showTerms(){const old=document.querySelector('.cd-terms-layer');if(old)old.remove();const layer=document.createElement('div');layer.className='cd-terms-layer';layer.innerHTML=`<article class="cd-terms-card"><header><div><span>CLUB DYNASTY 26</span><h2>Termos do jogo</h2></div><button id="closeTerms">×</button></header><div class="cd-terms-content"><h3>1. Natureza do jogo</h3><p>Club Dynasty 26 é um simulador independente de gestão de futebol. Decisões, ratings, probabilidades, resultados e valores de gameplay fazem parte da simulação.</p><h3>2. Dados de futebol</h3><p>Nomes, clubes, contratos, imagens e outras informações factuais podem vir de bases públicas ou fontes externas e podem mudar no futebol real. O jogo tenta manter a base atualizada, mas pode existir diferença entre a data da fonte e o mundo real.</p><h3>3. Imagens e marcas</h3><p>Imagens externas, escudos, bandeiras e fotos são exibidos para identificação visual quando a fonte disponibiliza. Se uma imagem falhar, o jogo usa um fallback próprio.</p><h3>4. Saves</h3><p>As carreiras ficam salvas no navegador do dispositivo. Limpar dados do navegador pode apagar saves que não tenham sido exportados.</p><h3>5. Economia</h3><p>Os valores internos são armazenados em euro. Dólar, libra e real são conversões de exibição com taxa de referência; isso evita que trocar a moeda altere a economia do save.</p><h3>6. Uso</h3><p>O projeto é um jogo de entretenimento e não representa aconselhamento financeiro, vínculo oficial com clubes, ligas, atletas ou entidades do futebol.</p></div><footer><span>Taxa de câmbio: ${exchangeMeta().source||'ECB'} • ${exchangeMeta().date||'—'}</span><button class="button" id="acceptTerms">Entendi</button></footer></article>`;document.body.appendChild(layer);requestAnimationFrame(()=>layer.classList.add('open'));const close=()=>{layer.classList.remove('open');setTimeout(()=>layer.remove(),160)};layer.querySelector('#closeTerms').onclick=close;layer.querySelector('#acceptTerms').onclick=close;layer.onclick=e=>{if(e.target===layer)close()}}
