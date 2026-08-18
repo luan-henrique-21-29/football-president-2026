@@ -1,0 +1,46 @@
+const KEY='club-dynasty-26-preferences-v1';
+const DEFAULTS={currency:'EUR',language:'pt-BR',sound:true,volume:.35};
+const SUPPORTED_CURRENCIES=['EUR','USD','GBP','BRL'];
+const SUPPORTED_LANGUAGES=['pt-BR','en-US','es-ES'];
+let prefs=loadLocal();
+let rates={base:'EUR',date:'2026-07-31',rates:{EUR:1,USD:1.1485,GBP:.85573,BRL:5.8095},source:'ECB'};
+
+function loadLocal(){try{return{...DEFAULTS,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return{...DEFAULTS}}}
+function store(){localStorage.setItem(KEY,JSON.stringify(prefs));}
+export function getPreferences(){return{...prefs};}
+export function getCurrency(){return SUPPORTED_CURRENCIES.includes(prefs.currency)?prefs.currency:'EUR';}
+export function getLanguage(){return SUPPORTED_LANGUAGES.includes(prefs.language)?prefs.language:'pt-BR';}
+export function setPreference(name,value){
+ if(name==='currency'&&SUPPORTED_CURRENCIES.includes(value))prefs.currency=value;
+ else if(name==='language'&&SUPPORTED_LANGUAGES.includes(value))prefs.language=value;
+ else if(name==='sound')prefs.sound=value===true||value==='true'||value==='on'||value==='1';
+ else if(name==='volume')prefs.volume=Math.max(0,Math.min(1,Number(value)||0));
+ store();return getPreferences();
+}
+export function syncFromSave(save){if(!save?.settings)return;const s=save.settings;if(SUPPORTED_CURRENCIES.includes(s.currency))prefs.currency=s.currency;if(SUPPORTED_LANGUAGES.includes(s.language))prefs.language=s.language;if(typeof s.sound==='boolean')prefs.sound=s.sound;if(Number.isFinite(s.volume))prefs.volume=s.volume;store();}
+export function writeToSave(save){if(!save)return;save.settings??={};save.settings.currency=getCurrency();save.settings.language=getLanguage();save.settings.sound=!!prefs.sound;save.settings.volume=prefs.volume;}
+export async function loadExchangeRates(){try{const r=await fetch(`./data/exchange-rates.json?v=${Date.now().toString().slice(0,8)}`,{cache:'no-store'});if(r.ok){const j=await r.json();if(j?.base==='EUR'&&j?.rates?.EUR===1)rates=j;}}catch(e){console.warn('Exchange-rate datapack unavailable; using bundled fallback.',e)}return rates;}
+export function exchangeMeta(){return rates;}
+export function convertFromEUR(value,currency=getCurrency()){const n=Number(value)||0;return n*(rates.rates?.[currency]||1);}
+export function locale(){return getLanguage()==='en-US'?'en-US':getLanguage()==='es-ES'?'es-ES':'pt-BR';}
+export function formatMoneyEUR(value,currency=getCurrency()){
+ const converted=convertFromEUR(value,currency);
+ try{return new Intl.NumberFormat(locale(),{style:'currency',currency,maximumFractionDigits:0}).format(converted)}catch{return `${currency} ${Math.round(converted).toLocaleString(locale())}`}
+}
+export function formatDateLocalized(value){if(!value)return'—';const d=new Date(`${String(value).slice(0,10)}T12:00:00Z`);if(Number.isNaN(d.getTime()))return String(value);return new Intl.DateTimeFormat(locale(),{day:'2-digit',month:'2-digit',year:'numeric'}).format(d)}
+
+const COPY={
+ 'pt-BR':{continue:'Continuar',newCareer:'Nova carreira',startCareer:'Começar carreira',currency:'Moeda',language:'Idioma',sound:'Som',terms:'Termos',country:'País',league:'Liga',club:'Clube',chooseClub:'Escolha seu clube',chooseCountry:'Escolha o país',chooseLeague:'Escolha a liga',president:'Presidente',settings:'Configurações',dashboard:'Painel',squad:'Elenco',coach:'Treinador',calendar:'Calendário',market:'Mercado',staff:'Diretoria',finances:'Finanças',facilities:'Estádio & Base',career:'Carreira',achievements:'Conquistas',news:'Notícias',database:'Base de dados',standings:'Classificação',statistics:'Estatísticas',competitions:'Competições',board:'Conselho',world:'Mundo',jobs:'Empregos'},
+ 'en-US':{continue:'Continue',newCareer:'New Career',startCareer:'Start Career',currency:'Currency',language:'Language',sound:'Sound',terms:'Terms',country:'Country',league:'League',club:'Club',chooseClub:'Choose your club',chooseCountry:'Choose a country',chooseLeague:'Choose a league',president:'President',settings:'Settings',dashboard:'Dashboard',squad:'Squad',coach:'Coach',calendar:'Calendar',market:'Transfers',staff:'Staff',finances:'Finances',facilities:'Stadium & Academy',career:'Career',achievements:'Achievements',news:'News',database:'Database',standings:'Standings',statistics:'Statistics',competitions:'Competitions',board:'Board',world:'World',jobs:'Jobs'},
+ 'es-ES':{continue:'Continuar',newCareer:'Nueva carrera',startCareer:'Empezar carrera',currency:'Moneda',language:'Idioma',sound:'Sonido',terms:'Términos',country:'País',league:'Liga',club:'Club',chooseClub:'Elige tu club',chooseCountry:'Elige el país',chooseLeague:'Elige la liga',president:'Presidente',settings:'Configuración',dashboard:'Panel',squad:'Plantilla',coach:'Entrenador',calendar:'Calendario',market:'Mercado',staff:'Directiva',finances:'Finanzas',facilities:'Estadio y cantera',career:'Carrera',achievements:'Logros',news:'Noticias',database:'Base de datos',standings:'Clasificación',statistics:'Estadísticas',competitions:'Competiciones',board:'Consejo',world:'Mundo',jobs:'Empleos'}
+};
+export function t(key){return COPY[getLanguage()]?.[key]||COPY['pt-BR'][key]||key;}
+
+let audioCtx=null;
+export function playUISound(kind='tap'){
+ if(!prefs.sound||prefs.volume<=0)return;
+ try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.type=kind==='confirm'?'sine':'triangle';o.frequency.value=kind==='confirm'?620:kind==='danger'?240:430;g.gain.setValueAtTime(.0001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.045*prefs.volume,audioCtx.currentTime+.012);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.09);o.start();o.stop(audioCtx.currentTime+.1);}catch{}
+}
+
+export const currencyOptions=()=>SUPPORTED_CURRENCIES.map(c=>({code:c,label:{EUR:'Euro (€)',USD:'Dólar (US$)',GBP:'Libra (£)',BRL:'Real (R$)'}[c]}));
+export const languageOptions=()=>[{code:'pt-BR',label:'Português (Brasil)'},{code:'en-US',label:'English'},{code:'es-ES',label:'Español'}];
