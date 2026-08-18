@@ -8,7 +8,8 @@ export function runPostMatchExtra(save,world,club,fixture,result,matchSquad,full
  const playerEvents=processPlayerMatch(save,result,fixture,matchSquad);
  recoverAndDevelop(save,fullSquad,fixture.date,save.facilities?.training||5,result.coachProfile?.youthDevelopment||60);
  const competitionEvent=processKnockoutResult(save,fixture,result,club);
- const worldEvents=simulateWorldTick(save,world,fixture.date,club.id);
+ const worldEvents=save.plan2LastWorldTick===fixture.date?[]:simulateWorldTick(save,world,fixture.date,club.id);
+ save.plan2LastWorldTick=fixture.date;
  const sponsorPayment=sponsorMonthlyPayment(save,fixture.date);
  const financial=financialCompliance(save);
  if(financial.status==='BREACH_RISK'&&!save.board.lastFinancialWarningMonth?.startsWith(fixture.date.slice(0,7))){
