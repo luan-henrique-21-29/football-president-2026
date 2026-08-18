@@ -13,6 +13,22 @@ export function applyRuntimeClubMetrics(world){
   return changed;
 }
 
+export function syncCareerClubMetrics(save,world){
+  if(!save||!world?.clubs?.length)return false;
+  let changed=false;
+  const own=world.findClub?.(save.clubId);
+  if(own&&save.clubSnapshot){
+    if(save.clubSnapshot.teamOverall!==own.teamOverall){save.clubSnapshot.teamOverall=own.teamOverall;changed=true;}
+    if(save.clubSnapshot.marketValue!==own.marketValue){save.clubSnapshot.marketValue=own.marketValue;changed=true;}
+    if(save.clubSnapshot.budgetBase!==own.budgetBase){save.clubSnapshot.budgetBase=own.budgetBase;changed=true;}
+  }
+  for(const fixture of save.calendar||[]){
+    const opponent=world.findClub?.(fixture.opponentId);if(!opponent)continue;
+    if(fixture.opponentOverall!==opponent.teamOverall){fixture.opponentOverall=opponent.teamOverall;changed=true;}
+  }
+  return changed;
+}
+
 export function runtimeClubOverall(club){
   if(!club)return 72;
   const m=typeof window!=='undefined'?window.__cdClubMetrics?.[String(club.id)]:null;
