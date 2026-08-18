@@ -20,7 +20,7 @@ export const ownedIds=()=>state.save?.acquiredPlayerIds||[];
 export const soldIds=()=>state.save?.soldPlayerIds||[];
 export function gameDate(){return nextFixture()?.date||state.save?.date||SNAPSHOT;}
 export function addYears(date,years){const d=new Date(`${date}T12:00:00Z`);d.setUTCFullYear(d.getUTCFullYear()+years);return d.toISOString().slice(0,10);}
-export function clubBudgetBase(club){let mv=num(club?.marketValue);if(mv>0&&mv<10000)mv*=1e6;if(!mv)mv=Math.pow(Math.max(65,club?.teamOverall||72)-50,3)*22000;return Math.max(8000000,Math.round(mv*.22/100000)*100000);}
+export function clubBudgetBase(club){const direct=num(club?.budgetBase);if(direct>0)return Math.max(4_000_000,Math.round(direct/100000)*100000);let mv=num(club?.marketValue);if(mv>0&&mv<10000)mv*=1e6;if(!mv)mv=Math.pow(Math.max(65,club?.teamOverall||72)-50,3)*22000;return Math.max(8000000,Math.round(mv*.22/100000)*100000);}
 export function squad(){if(!state.world?.players||!state.save)return[];const out=new Set((state.save.loans||[]).filter(l=>l.active&&l.direction==='OUT').map(l=>String(l.playerId))),real=state.world.playersForClub(state.save.clubId,ownedIds()).filter(p=>!soldIds().includes(String(p.id))&&!out.has(String(p.id)));const players=[...real,...(state.save.youth||[]).filter(p=>p.promoted&&!out.has(String(p.id)))];annotatePlayers(players,state.save);return players;}
 export function teamOverall(){const p=squad();return p.length>=11?calculateTeamOverall(p):(currentClub()?.teamOverall||72);}
 export function persist(){if(state.save){ensureCareerSystems(state.save,currentClub());ensureWorldSimulation(state.save,state.world);writeToSave(state.save);saveToSlot(state.save,state.activeSlot||1);}}
