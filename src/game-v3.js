@@ -1,4 +1,4 @@
-import * as base from './game-v2.js';
+import * as base from './game.js';
 import {coachGameplayProfile,coachMatchModifiers} from './coach-profile.js';
 
 export const leagueProfile=base.leagueProfile;
