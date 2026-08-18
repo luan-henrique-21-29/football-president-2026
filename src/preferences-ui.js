@@ -1,7 +1,15 @@
 import {state,persist} from './state.js';
 import {setPreference,getPreferences,writeToSave,playUISound,t,exchangeMeta} from './preferences.js';
 
+const MONEY_FIELDS=['offerValue','installmentValue','appearanceBonus','titleBonus','loanFee','buyOption','marketValue','ticketPrice','transferBudgetEdit','wageBudgetEdit'];
+const ACTION_FIELDS={sendOffer:['offerValue','installmentValue','appearanceBonus','titleBonus'],sendLoan:['loanFee','buyOption'],marketFilter:['marketValue'],saveBudgets:['ticketPrice','transferBudgetEdit','wageBudgetEdit']};
+const symbol={EUR:'€',USD:'US$',GBP:'£',BRL:'R$'};
+function rate(){const p=getPreferences();return Number(exchangeMeta().rates?.[p.currency])||1}
+function prepareMoneyInputs(){const r=rate(),p=getPreferences();for(const id of MONEY_FIELDS){const el=document.getElementById(id);if(!el||el.dataset.cdConverted==='1'||el.value==='')continue;const eur=Number(el.value);if(!Number.isFinite(eur))continue;el.dataset.cdConverted='1';el.dataset.eurValue=String(eur);el.value=String(Math.round(eur*r));el.title=`Valor exibido em ${p.currency}; a economia interna usa EUR.`;}const max=document.querySelector('#marketValue');if(max)max.placeholder=`Valor máx. ${symbol[p.currency]||p.currency}`;}
+function installMoneyCapture(){if(window.__cdMoneyCapture)return;window.__cdMoneyCapture=true;document.addEventListener('click',e=>{const button=e.target.closest('button');if(!button)return;const ids=ACTION_FIELDS[button.id];if(!ids)return;const r=rate(),restore=[];for(const id of ids){const el=document.getElementById(id);if(!el||el.value==='')continue;const shown=Number(el.value);if(!Number.isFinite(shown))continue;restore.push([el,el.value]);el.value=String(Math.round(shown/r));}setTimeout(()=>{for(const [el,value] of restore)if(el.isConnected)el.value=value},0)},true)}
+
 export function bindPreferenceUI(render){
+ prepareMoneyInputs();installMoneyCapture();
  document.querySelectorAll('[data-pref]').forEach(el=>el.addEventListener('change',()=>{
    const name=el.dataset.pref;setPreference(name,el.value);if(state.save){writeToSave(state.save);persist();}
    playUISound('confirm');render?.();
