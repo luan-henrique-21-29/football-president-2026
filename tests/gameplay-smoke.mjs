@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {calculateTeamOverall,coachSelection,simulateFixture,applyMatchFitness} from '../src/game-v4.js';
+import {calculateTeamOverall,coachSelection,simulateFixture,applyMatchFitness} from '../src/game-v5.js';
 import {availableForFixture,processPlayerMatch} from '../src/player-career.js';
 
 function player(id,position,overall,extra={}){
@@ -48,6 +48,17 @@ assert.ok(!available.some(p=>String(p.id)===String(banned.id)),'suspended player
 const disciplineResult=simulateFixture({save:disciplineSave,fixture:{...fixture,id:'BAN1'},nextFixture:null,squad:available,opponentClub:weakOpp});
 processPlayerMatch(disciplineSave,disciplineResult,fixture,available,suspensionSquad);
 assert.equal(disciplineSave.playerCareer[banned.id].suspension,0,'a suspended player must serve one match and become available again');
+
+let cupFixture=null,cupResult=null;
+for(let i=0;i<120&&!cupResult;i++){
+  const f={...fixture,id:`CUP-DRAW-${i}`,type:'CUP',competition:'National Cup',round:'Quartas',importance:1.7,opponentId:'equal',opponentName:'Equal FC',opponentOverall:83};
+  const r=simulateFixture({save,fixture:f,nextFixture:null,squad:user,opponentClub:{id:'equal',name:'Equal FC',teamOverall:83,coachName:'Equal Coach'}});
+  if(r.gf===r.ga){cupFixture=f;cupResult=r}
+}
+assert.ok(cupResult?.shootout,'a drawn knockout match must have a shootout');
+const cupAgain=simulateFixture({save,fixture:cupFixture,nextFixture:null,squad:user,opponentClub:{id:'equal',name:'Equal FC',teamOverall:83,coachName:'Equal Coach'}});
+assert.deepEqual(cupAgain.shootout,cupResult.shootout,'shootout result must not reroll on refresh');
+assert.notEqual(cupResult.shootout.user,cupResult.shootout.opponent,'shootout must produce a winner');
 
 let strongXg=0,strongXga=0,weakXg=0,weakXga=0;
 for(let i=0;i<30;i++){
