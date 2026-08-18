@@ -1,6 +1,8 @@
 import {state,SNAPSHOT} from './state.js';
+import {frontPreferences} from './preferences-ui.js';
+import {t} from './preferences.js';
 
-const ART='20260818-8';
+const ART='20260818-9';
 export function cover(){
   const has=!!state.save;
   const status=state.loadingWorld
@@ -8,7 +10,7 @@ export function cover(){
     : state.world?.status==='world'
       ? `${state.world.clubs.length} clubes disponíveis`
       : 'Base local ativa';
-  return `<section class="cd-cover-screen">
+  return `<section class="cd-cover-screen light-identity">
     <img class="cd-cover-art" src="./assets/brand/club-dynasty-26-cover.webp?v=${ART}" alt="Club Dynasty 26 com três estrelas do futebol em um estádio" />
     <div class="cd-cover-vignette"></div>
     <div class="cd-cover-ui">
@@ -20,9 +22,10 @@ export function cover(){
         </div>
       </div>
       <div class="cd-cover-actions">
-        ${has?'<button class="cd-action primary" id="continueCareer"><strong>CONTINUAR</strong><span>Voltar à sua carreira</span><i>›</i></button>':''}
-        <button class="cd-action ${has?'glass':'primary'}" id="newCareer"><strong>${has?'NOVA CARREIRA':'COMEÇAR CARREIRA'}</strong><span>${has?'Comece uma nova dinastia':'Assuma o controle de um clube'}</span><i>›</i></button>
+        ${has?`<button class="cd-action primary" id="continueCareer"><strong>${t('continue').toUpperCase()}</strong><span>Voltar à sua carreira</span><i>›</i></button>`:''}
+        <button class="cd-action ${has?'glass':'primary'}" id="newCareer"><strong>${(has?t('newCareer'):t('startCareer')).toUpperCase()}</strong><span>${has?'Comece uma nova dinastia':'Assuma o controle de um clube'}</span><i>›</i></button>
       </div>
+      ${frontPreferences()}
       <div class="cd-cover-status"><span class="status-dot ${state.loadingWorld?'loading':state.world?.status==='world'?'ok':'warn'}"></span>${status}</div>
     </div>
   </section>`;
