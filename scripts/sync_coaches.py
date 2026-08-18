@@ -1,4 +1,4 @@
-import json, re, time
+import csv, gzip, io, json, re, time, urllib.request
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -6,10 +6,10 @@ import requests
 from bs4 import BeautifulSoup
 
 TARGET_COMPETITIONS={'GB1','GB2','ES1','ES2','IT1','IT2','FR1','FR2','BRA1','BRA2','MLS1','SA1'}
+BASE='https://pub-e682421888d945d684bcae8890b0ec20.r2.dev/data'
 STAFF_URL='https://www.transfermarkt.com/-/mitarbeiter/verein/{club_id}'
 HEADERS={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36','Accept-Language':'en-US,en;q=0.9'}
 TODAY=date.today()
-# Verified current overrides. These win over provider rows that can lag behind a managerial change.
 OVERRIDES={
     '281':{'name':'Enzo Maresca','contractUntil':'2029-06-30','source':'official-mancity-2026-06-29'},
     '418':{'name':'José Mourinho','contractUntil':'2029-06-30','source':'official-realmadrid-2026-06-11'},
@@ -17,17 +17,31 @@ OVERRIDES={
     '199':{'name':'Fernando Diniz','contractUntil':'2026-12-31','source':'current-corinthians-2026-08'}
 }
 
-def clean_img(value):
-    if not value:return ''
-    return value.replace('small','header').strip()
-
+def clean_img(value):return (value or '').replace('small','header').strip()
 def clean_date(text):
-    # Transfermarkt staff tables vary by locale; keep only explicit ISO-like dates when available.
     m=re.search(r'(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})',text or '')
     if not m:return ''
-    y,mo,d=map(int,m.groups())
-    try:return date(y,mo,d).isoformat()
+    try:return date(*map(int,m.groups())).isoformat()
     except:return ''
+
+def latest_game_managers():
+    out={}
+    try:
+        req=urllib.request.Request(f'{BASE}/games.csv.gz',headers={'User-Agent':'ClubDynasty26/2.0'})
+        with urllib.request.urlopen(req,timeout=180) as r:raw=gzip.decompress(r.read()).decode('utf-8-sig',errors='replace')
+        for row in csv.DictReader(io.StringIO(raw)):
+            when=str(row.get('date') or '')[:10]
+            try:d=datetime.strptime(when,'%Y-%m-%d').date()
+            except:continue
+            if d>TODAY:continue
+            for side in ('home','away'):
+                cid=str(row.get(f'{side}_club_id') or '').strip();name=(row.get(f'{side}_club_manager_name') or '').strip()
+                if not cid or not name:continue
+                old=out.get(cid)
+                if old is None or when>old['date']:out[cid]={'name':name,'date':when}
+        print(f'Latest-game manager evidence for {len(out)} clubs')
+    except Exception as exc:print(f'Latest games unavailable: {exc}')
+    return out
 
 def scrape_manager(club_id):
     try:
@@ -48,39 +62,32 @@ def scrape_manager(club_id):
         candidates.sort(key=lambda x:x[0],reverse=True);score,name,image,contract=candidates[0]
         if score<0:return None
         return {'name':name,'image':image,'contractUntil':contract,'source':'transfermarkt-staff-live'}
-    except Exception:return None
+    except:return None
 
 def main():
     path=Path('data/clubs-world.json')
     if not path.exists():raise SystemExit('data/clubs-world.json not found')
-    raw=json.loads(path.read_text(encoding='utf-8'));clubs=raw.get('clubs',raw if isinstance(raw,list) else [])
-    records=[];session_targets=[]
-    for club in clubs:
+    raw=json.loads(path.read_text(encoding='utf-8'));clubs=raw.get('clubs',raw if isinstance(raw,list) else []);game_managers=latest_game_managers();records=[]
+    targets=[c for c in clubs if c.get('competitionId') in TARGET_COMPETITIONS]
+    for i,club in enumerate(clubs,1):
         cid=str(club.get('id') or '')
         if not cid:continue
         base={'clubId':cid,'club':club.get('name',''),'competitionId':club.get('competitionId','')}
-        if cid in OVERRIDES:
-            records.append({**base,**OVERRIDES[cid]});continue
-        if club.get('competitionId') in TARGET_COMPETITIONS:session_targets.append((club,base))
-        elif (club.get('coach') or club.get('coachName')):
-            records.append({**base,'name':(club.get('coach') or club.get('coachName') or '').strip(),'image':'','contractUntil':'','source':'club-datapack-fallback'})
-    print(f'Coach live refresh: {len(session_targets)} target clubs')
-    for i,(club,base) in enumerate(session_targets,1):
-        found=scrape_manager(base['clubId'])
+        if cid in OVERRIDES:records.append({**base,**OVERRIDES[cid]});continue
+        recent=game_managers.get(cid)
+        if recent and club.get('competitionId') in TARGET_COMPETITIONS:
+            records.append({**base,'name':recent['name'],'image':'','contractUntil':'','source':f'latest-match-{recent["date"]}'});continue
+        if club.get('competitionId') in TARGET_COMPETITIONS:
+            found=scrape_manager(cid);fallback=(club.get('coach') or club.get('coachName') or '').strip()
+            if found and found.get('name'):records.append({**base,**found});print(f"{club.get('name')}: {found['name']} (live staff)")
+            elif fallback:records.append({**base,'name':fallback,'image':'','contractUntil':'','source':'club-datapack-fallback'})
+            time.sleep(.35);continue
         fallback=(club.get('coach') or club.get('coachName') or '').strip()
-        if found and found.get('name'):
-            records.append({**base,**found});print(f"[{i}/{len(session_targets)}] {base['club']}: {found['name']} (live)")
-        elif fallback:
-            records.append({**base,'name':fallback,'image':'','contractUntil':'','source':'club-datapack-fallback'});print(f"[{i}/{len(session_targets)}] {base['club']}: {fallback} (fallback)")
-        else:print(f"[{i}/{len(session_targets)}] {base['club']}: unavailable")
-        time.sleep(.4)
+        if fallback:records.append({**base,'name':fallback,'image':'','contractUntil':'','source':'club-datapack-fallback'})
     by_id={str(r['clubId']):r for r in records}
-    # Verified overrides always win after live enrichment.
     for cid,data in OVERRIDES.items():
-        club=next((c for c in clubs if str(c.get('id'))==cid),{})
-        by_id[cid]={'clubId':cid,'club':club.get('name',''),'competitionId':club.get('competitionId',''),**data}
-    out={'snapshot':TODAY.isoformat(),'syncedAt':datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),'entity':'coaches','source':'live staff pages + club datapack fallbacks + verified overrides','records':sorted(by_id.values(),key=lambda r:(r.get('club',''),r.get('name','')))}
-    Path('data/coaches.json').write_text(json.dumps(out,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
-    print(f"Wrote {len(out['records'])} coach records")
+        club=next((c for c in clubs if str(c.get('id'))==cid),{});by_id[cid]={'clubId':cid,'club':club.get('name',''),'competitionId':club.get('competitionId',''),**data}
+    out={'snapshot':TODAY.isoformat(),'syncedAt':datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),'entity':'coaches','source':'latest match managers + live staff pages + verified overrides','records':sorted(by_id.values(),key=lambda r:(r.get('club',''),r.get('name','')))}
+    Path('data/coaches.json').write_text(json.dumps(out,ensure_ascii=False,separators=(',',':')),encoding='utf-8');print(f"Wrote {len(out['records'])} coach records")
 
 if __name__=='__main__':main()
