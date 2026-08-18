@@ -8,143 +8,64 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/update-football-data.yml'
+      - 'scripts/build_datapack.py'
+      - 'scripts/sync_live_squads.py'
       - 'scripts/sync_coaches.py'
 
 permissions:
   contents: write
 
+concurrency:
+  group: football-data-refresh
+  cancel-in-progress: false
+
 jobs:
   sync:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build game datapack
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install sync dependencies
+        run: python -m pip install --quiet requests beautifulsoup4
+
+      - name: Build current football datapack
+        run: python scripts/build_datapack.py
+
+      - name: Merge live squad contracts and values
+        continue-on-error: true
+        run: python scripts/sync_live_squads.py
+
+      - name: Refresh current coaches
+        continue-on-error: true
+        run: python scripts/sync_coaches.py
+
+      - name: Validate generated data
+        shell: bash
         run: |
           python - <<'PY'
-          import csv, gzip, io, json, math, os, urllib.request
-          from datetime import date, datetime
-
-          SNAPSHOT = date(2026, 8, 14)
-          BASE = 'https://pub-e682421888d945d684bcae8890b0ec20.r2.dev/data'
-          os.makedirs('data', exist_ok=True)
-
-          def fetch_gz(name):
-              req = urllib.request.Request(f'{BASE}/{name}.csv.gz', headers={'User-Agent':'FootballPresident2026/1.0'})
-              with urllib.request.urlopen(req, timeout=120) as r:
-                  raw = r.read()
-              return gzip.decompress(raw).decode('utf-8-sig', errors='replace')
-
-          def num(v, default=0):
-              try: return int(float(v)) if v not in ('', None) else default
-              except: return default
-
-          def age_on(dob):
-              try:
-                  d = datetime.strptime(dob[:10], '%Y-%m-%d').date()
-                  return SNAPSHOT.year-d.year-((SNAPSHOT.month,SNAPSHOT.day)<(d.month,d.day))
-              except: return 25
-
-          def overall(value, age, pos):
-              value=max(0,value)
-              score=55 + 10.5*math.log10(value/100000 + 1) if value else 54
-              if 21 <= age <= 29: score += 1
-              elif age <= 18: score -= 2
-              elif age >= 36: score -= 4
-              elif age >= 33: score -= 2
-              if pos == 'Goalkeeper' and age >= 30: score += 1
-              return max(50,min(93,round(score)))
-
-          def potential(ovr, age, value):
-              bonus = 0
-              if age <= 18: bonus=8
-              elif age <= 20: bonus=6
-              elif age <= 22: bonus=4
-              elif age <= 24: bonus=2
-              elif age >= 31: bonus=-1
-              if value >= 50000000 and age <= 23: bonus += 1
-              return max(ovr,min(95,ovr+bonus))
-
-          players_csv = fetch_gz('players')
-          players=[]
-          for r in csv.DictReader(io.StringIO(players_csv)):
-              club=(r.get('current_club_name') or '').strip()
-              if not club: continue
-              last=num(r.get('last_season'), 0)
-              if last and last < 2025: continue
-              dob=(r.get('date_of_birth') or '')[:10]
-              age=age_on(dob)
-              value=num(r.get('market_value_in_eur'))
-              pos=(r.get('position') or 'Unknown').strip()
-              ovr=overall(value,age,pos)
-              players.append({
-                  'id': str(r.get('player_id') or ''),
-                  'name': (r.get('name') or '').strip(),
-                  'firstName': (r.get('first_name') or '').strip(),
-                  'lastName': (r.get('last_name') or '').strip(),
-                  'clubId': str(r.get('current_club_id') or ''),
-                  'club': club,
-                  'competitionId': (r.get('current_club_domestic_competition_id') or '').strip(),
-                  'nationality': (r.get('country_of_citizenship') or '').strip(),
-                  'birthDate': dob,
-                  'age': age,
-                  'position': pos,
-                  'subPosition': (r.get('sub_position') or '').strip(),
-                  'foot': (r.get('foot') or '').strip(),
-                  'height': num(r.get('height_in_cm')),
-                  'value': value,
-                  'highestValue': num(r.get('highest_market_value_in_eur')),
-                  'contractUntil': (r.get('contract_expiration_date') or '')[:10],
-                  'imageUrl': (r.get('image_url') or '').strip(),
-                  'overall': ovr,
-                  'potential': potential(ovr,age,value)
-              })
-          players.sort(key=lambda x:(-x['overall'],-x['value'],x['name']))
-
-          clubs_csv = fetch_gz('clubs')
-          world=[]
-          for r in csv.DictReader(io.StringIO(clubs_csv)):
-              world.append({
-                  'id': str(r.get('club_id') or ''),
-                  'name': (r.get('name') or '').strip(),
-                  'competitionId': (r.get('domestic_competition_id') or '').strip(),
-                  'squadSize': num(r.get('squad_size')),
-                  'averageAge': r.get('average_age') or '',
-                  'stadium': (r.get('stadium_name') or '').strip(),
-                  'stadiumSeats': num(r.get('stadium_seats')),
-                  'coach': (r.get('coach_name') or '').strip(),
-                  'totalMarketValue': r.get('total_market_value') or ''
-              })
-
-          meta={
-              'gameSnapshot':'2026-08-14',
-              'syncedAt': datetime.utcnow().replace(microsecond=0).isoformat()+'Z',
-              'source':'dcaribou/transfermarkt-datasets',
-              'playerCount':len(players),
-              'clubCount':len(world),
-              'overallNote':'Overall e potencial são índices internos do jogo derivados de valor de mercado e idade; não são ratings oficiais da EA.'
-          }
-          with open('data/players.json','w',encoding='utf-8') as f:
-              json.dump({'meta':meta,'players':players},f,ensure_ascii=False,separators=(',',':'))
-          with open('data/clubs-world.json','w',encoding='utf-8') as f:
-              json.dump({'meta':meta,'clubs':world},f,ensure_ascii=False,separators=(',',':'))
-          with open('data/database-meta.json','w',encoding='utf-8') as f:
-              json.dump(meta,f,ensure_ascii=False,indent=2)
-          print(f'Built {len(players)} players and {len(world)} clubs')
+          import json
+          from pathlib import Path
+          for name in ['players.json','clubs-world.json','database-meta.json','coaches.json','transfers.json']:
+              p=Path('data')/name
+              if not p.exists(): raise SystemExit(f'Missing {p}')
+              json.loads(p.read_text(encoding='utf-8'))
+              print('OK',p)
           PY
 
-      - name: Enrich coaches
-        run: |
-          python -m pip install --quiet requests beautifulsoup4
-          python scripts/sync_coaches.py
-
       - name: Commit datapack
+        shell: bash
         run: |
-          git config user.name 'football-president-bot'
+          git config user.name 'club-dynasty-data-bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add data/players.json data/clubs-world.json data/database-meta.json data/coaches.json
+          git add data/players.json data/clubs-world.json data/database-meta.json data/coaches.json data/transfers.json
           git diff --cached --quiet && exit 0
-          git commit -m 'Update football database [skip ci]'
+          git commit -m 'Update current football database [skip ci]'
           git push
