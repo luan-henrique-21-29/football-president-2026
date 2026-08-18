@@ -85,6 +85,10 @@ function clubMetrics(players=[]){
   }
   return metrics;
 }
+function exposeClubMetrics(metrics){
+  if(typeof window==='undefined')return;
+  window.__cdClubMetrics=Object.fromEntries([...metrics.entries()].map(([clubId,m])=>[clubId,{overall:m.overall,totalValue:m.totalValue,budgetBase:m.budgetBase}]));
+}
 
 async function localDataset(url) {
   const target = String(url || '');
@@ -114,7 +118,7 @@ async function localDataset(url) {
 
   if (target.endsWith('/clubs.csv.gz')) {
     const [data,playerData] = await Promise.all([localJson('./data/clubs-world.json'),localJson('./data/players.json')]);
-    const metrics=clubMetrics(playerData.players||[]);
+    const metrics=clubMetrics(playerData.players||[]);exposeClubMetrics(metrics);
     return (data.clubs || []).map(c => {
       const meta = COMPETITIONS[c.competitionId] || [c.competitionId || 'Liga não informada',''];
       const m=metrics.get(String(c.id));
@@ -130,8 +134,6 @@ async function localDataset(url) {
         stadium_seats:c.stadiumSeats || 0,
         coach_name:c.coach || '',
         total_market_value:Number(c.totalMarketValue)||m?.totalValue||0,
-        game_team_overall:m?.overall||0,
-        game_budget_base:m?.budgetBase||0,
         last_season:2026
       };
     });
