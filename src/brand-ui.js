@@ -1,3 +1,4 @@
+import './player-extra-data.js';
 import {state,SNAPSHOT} from './state.js';
 import {frontPreferences} from './preferences-ui.js';
 import {t} from './preferences.js';
