@@ -1,1 +1,1 @@
-export * from './game-v7.js';
+export * from './game-v8.js';
