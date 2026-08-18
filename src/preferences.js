@@ -10,23 +10,15 @@ function store(){localStorage.setItem(KEY,JSON.stringify(prefs));}
 export function getPreferences(){return{...prefs};}
 export function getCurrency(){return SUPPORTED_CURRENCIES.includes(prefs.currency)?prefs.currency:'EUR';}
 export function getLanguage(){return SUPPORTED_LANGUAGES.includes(prefs.language)?prefs.language:'pt-BR';}
-export function setPreference(name,value){
- if(name==='currency'&&SUPPORTED_CURRENCIES.includes(value))prefs.currency=value;
- else if(name==='language'&&SUPPORTED_LANGUAGES.includes(value))prefs.language=value;
- else if(name==='sound')prefs.sound=value===true||value==='true'||value==='on'||value==='1';
- else if(name==='volume')prefs.volume=Math.max(0,Math.min(1,Number(value)||0));
- store();return getPreferences();
-}
+export function setPreference(name,value){if(name==='currency'&&SUPPORTED_CURRENCIES.includes(value))prefs.currency=value;else if(name==='language'&&SUPPORTED_LANGUAGES.includes(value))prefs.language=value;else if(name==='sound')prefs.sound=value===true||value==='true'||value==='on'||value==='1';else if(name==='volume')prefs.volume=Math.max(0,Math.min(1,Number(value)||0));store();return getPreferences();}
 export function syncFromSave(save){if(!save?.settings)return;const s=save.settings;if(SUPPORTED_CURRENCIES.includes(s.currency))prefs.currency=s.currency;if(SUPPORTED_LANGUAGES.includes(s.language))prefs.language=s.language;if(typeof s.sound==='boolean')prefs.sound=s.sound;if(Number.isFinite(s.volume))prefs.volume=s.volume;store();}
 export function writeToSave(save){if(!save)return;save.settings??={};save.settings.currency=getCurrency();save.settings.language=getLanguage();save.settings.sound=!!prefs.sound;save.settings.volume=prefs.volume;}
 export async function loadExchangeRates(){try{const r=await fetch(`./data/exchange-rates.json?v=${Date.now().toString().slice(0,8)}`,{cache:'no-store'});if(r.ok){const j=await r.json();if(j?.base==='EUR'&&j?.rates?.EUR===1)rates=j;}}catch(e){console.warn('Exchange-rate datapack unavailable; using bundled fallback.',e)}return rates;}
 export function exchangeMeta(){return rates;}
 export function convertFromEUR(value,currency=getCurrency()){const n=Number(value)||0;return n*(rates.rates?.[currency]||1);}
 export function locale(){return getLanguage()==='en-US'?'en-US':getLanguage()==='es-ES'?'es-ES':'pt-BR';}
-export function formatMoneyEUR(value,currency=getCurrency()){
- const converted=convertFromEUR(value,currency);
- try{return new Intl.NumberFormat(locale(),{style:'currency',currency,maximumFractionDigits:0}).format(converted)}catch{return `${currency} ${Math.round(converted).toLocaleString(locale())}`}
-}
+export function formatMoneyEUR(value,currency=getCurrency()){const converted=convertFromEUR(value,currency);try{return new Intl.NumberFormat(locale(),{style:'currency',currency,maximumFractionDigits:0}).format(converted)}catch{return `${currency} ${Math.round(converted).toLocaleString(locale())}`}}
+export function formatCompactMoneyEUR(value,currency=getCurrency()){const converted=convertFromEUR(value,currency),abs=Math.abs(converted);let divisor=1,suffix='';if(abs>=1e9){divisor=1e9;suffix=getLanguage()==='en-US'?'B':' bi'}else if(abs>=1e6){divisor=1e6;suffix=getLanguage()==='en-US'?'M':' mi'}else if(abs>=1e3){divisor=1e3;suffix=getLanguage()==='en-US'?'K':' mil'}const compact=converted/divisor;let symbol='';try{symbol=new Intl.NumberFormat(locale(),{style:'currency',currency,currencyDisplay:'narrowSymbol',maximumFractionDigits:0}).formatToParts(0).find(x=>x.type==='currency')?.value||currency}catch{symbol=currency}const digits=abs>=1e6?1:abs>=1e3?0:0;return `${symbol} ${compact.toLocaleString(locale(),{minimumFractionDigits:digits,maximumFractionDigits:digits})}${suffix}`.trim()}
 export function formatDateLocalized(value){if(!value)return'—';const d=new Date(`${String(value).slice(0,10)}T12:00:00Z`);if(Number.isNaN(d.getTime()))return String(value);return new Intl.DateTimeFormat(locale(),{day:'2-digit',month:'2-digit',year:'numeric'}).format(d)}
 
 const COPY={
@@ -37,10 +29,6 @@ const COPY={
 export function t(key){return COPY[getLanguage()]?.[key]||COPY['pt-BR'][key]||key;}
 
 let audioCtx=null;
-export function playUISound(kind='tap'){
- if(!prefs.sound||prefs.volume<=0)return;
- try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.type=kind==='confirm'?'sine':'triangle';o.frequency.value=kind==='confirm'?620:kind==='danger'?240:430;g.gain.setValueAtTime(.0001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.045*prefs.volume,audioCtx.currentTime+.012);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.09);o.start();o.stop(audioCtx.currentTime+.1);}catch{}
-}
-
+export function playUISound(kind='tap'){if(!prefs.sound||prefs.volume<=0)return;try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.type=kind==='confirm'?'sine':'triangle';o.frequency.value=kind==='confirm'?620:kind==='danger'?240:430;g.gain.setValueAtTime(.0001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.045*prefs.volume,audioCtx.currentTime+.012);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.09);o.start();o.stop(audioCtx.currentTime+.1)}catch{}}
 export const currencyOptions=()=>SUPPORTED_CURRENCIES.map(c=>({code:c,label:{EUR:'Euro (€)',USD:'Dólar (US$)',GBP:'Libra (£)',BRL:'Real (R$)'}[c]}));
 export const languageOptions=()=>[{code:'pt-BR',label:'Português (Brasil)'},{code:'en-US',label:'English'},{code:'es-ES',label:'Español'}];
