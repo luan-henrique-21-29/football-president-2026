@@ -1,18 +1,21 @@
-import {setup as baseSetup,frame as baseFrame} from './shell.js';
+import {frame as baseFrame} from './shell.js';
+import {setup as modernSetup} from './setup-v3.js';
 import {state} from './state.js';
-const ART='20260818-8';
+import {t} from './preferences.js';
+const ART='20260818-9';
 
-export function setup(){
-  return baseSetup().replace(
-    '<section class="setup-screen"><div class="setup-top">',
-    `<section class="setup-screen"><div class="cd-setup-art"><img src="./assets/brand/club-dynasty-26-club-select.webp?v=${ART}" alt="Visual Club Dynasty 26 para escolha de país, liga e clube"></div><div class="setup-top">`
-  );
+export const setup=modernSetup;
+
+function localizeShell(html){
+ const map={Painel:t('dashboard'),Clube:t('club'),Elenco:t('squad'),Treinador:t('coach'),'Calendário':t('calendar'),Mercado:t('market'),Diretoria:t('staff'),'Finanças':t('finances'),'Estádio & Base':t('facilities'),Carreira:t('career'),Conquistas:t('achievements'),'Notícias':t('news'),'Base de dados':t('database'),'Configurações':t('settings')};
+ for(const [from,to] of Object.entries(map))html=html.replaceAll(`>${from}</button>`,`>${to}</button>`);
+ return html;
 }
-
 export function frame(body){
-  const extra=[['standings','≡','Classificação'],['statistics','Σ','Estatísticas'],['competitions','♜','Competições'],['board','▣','Conselho'],['world','◎','Mundo'],['jobs','↗','Empregos']].map(([id,icon,label])=>`<button class="nav-btn ${state.page===id?'active':''}" data-page="${id}"><i>${icon}</i>${label}</button>`).join('');
-  return baseFrame(body)
+  const extra=[['standings','≡',t('standings')],['statistics','Σ',t('statistics')],['competitions','♜',t('competitions')],['board','▣',t('board')],['world','◎',t('world')],['jobs','↗',t('jobs')]].map(([id,icon,label])=>`<button class="nav-btn ${state.page===id?'active':''}" data-page="${id}"><i>${icon}</i>${label}</button>`).join('');
+  let html=baseFrame(body)
     .replace('<button class="brand-mark" id="goCover">FP</button>',`<button class="brand-mark cd-brand-mark" id="goCover"><img src="./assets/brand/club-dynasty-26-logo.webp?v=${ART}" alt="CD26"></button>`)
     .replace('<div class="brand-copy"><strong>FOOTBALL PRESIDENT</strong>','<div class="brand-copy cd-brand-copy"><strong>CLUB <em>DYNASTY 26</em></strong>')
     .replace('</aside>',`${extra}</aside>`);
+  return localizeShell(html);
 }
