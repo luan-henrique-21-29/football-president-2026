@@ -34,10 +34,56 @@ const COMPETITIONS = {
   UKR1:['Premier Liga','Ukraine'],C1:['Super League','Switzerland'],A1:['Bundesliga','Austria']
 };
 
+const LOCAL_CACHE = new Map();
 async function localJson(path) {
-  const response = await fetch(path, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`Falha ao carregar ${path}: ${response.status}`);
-  return response.json();
+  if (LOCAL_CACHE.has(path)) return LOCAL_CACHE.get(path);
+  const request = fetch(path, { cache: 'no-store' }).then(async response => {
+    if (!response.ok) throw new Error(`Falha ao carregar ${path}: ${response.status}`);
+    return response.json();
+  });
+  LOCAL_CACHE.set(path, request);
+  try { return await request; }
+  catch (error) { LOCAL_CACHE.delete(path); throw error; }
+}
+
+const SNAPSHOT='2026-08-14';
+function ageAtSnapshot(date){
+  if(!date)return null;
+  const born=new Date(`${String(date).slice(0,10)}T00:00:00Z`),now=new Date(`${SNAPSHOT}T00:00:00Z`);
+  if(Number.isNaN(born.getTime()))return null;
+  let age=now.getUTCFullYear()-born.getUTCFullYear();
+  if(now.getUTCMonth()<born.getUTCMonth()||(now.getUTCMonth()===born.getUTCMonth()&&now.getUTCDate()<born.getUTCDate()))age--;
+  return age;
+}
+function gamePlayerRating(p){
+  const value=Math.max(10000,Number(p?.value)||0);
+  let rating=47+Math.log10(value)*5.2;
+  const age=ageAtSnapshot(p?.birthDate);
+  if(age!=null&&age>=30)rating+=Math.min(3.2,(age-29)*.55);
+  if(age!=null&&age<=20)rating-=Math.max(0,(21-age)*.65);
+  if(String(p?.position||'').toLowerCase().includes('goal')&&age!=null&&age>=29)rating+=.8;
+  return Math.max(55,Math.min(93,Math.round(rating)));
+}
+function clubMetrics(players=[]){
+  const metrics=new Map();
+  for(const p of players){
+    const clubId=String(p.clubId||'');if(!clubId)continue;
+    const entry=metrics.get(clubId)||{totalValue:0,ratings:[]};
+    entry.totalValue+=Math.max(0,Number(p.value)||0);
+    entry.ratings.push(gamePlayerRating(p));
+    metrics.set(clubId,entry);
+  }
+  for(const entry of metrics.values()){
+    entry.ratings.sort((a,b)=>b-a);
+    const best11=entry.ratings.slice(0,11),depth=entry.ratings.slice(11,18);
+    const first=best11.length?best11.reduce((a,b)=>a+b,0)/best11.length:70;
+    const bench=depth.length?depth.reduce((a,b)=>a+b,0)/depth.length:first;
+    entry.overall=Math.max(58,Math.min(93,Math.round(first*.92+bench*.08)));
+    const valueBudget=entry.totalValue*.18;
+    const strengthFloor=Math.pow(Math.max(8,entry.overall-54),2)*45000;
+    entry.budgetBase=Math.max(4_000_000,Math.round(Math.max(valueBudget,strengthFloor)/100000)*100000);
+  }
+  return metrics;
 }
 
 async function localDataset(url) {
@@ -67,9 +113,11 @@ async function localDataset(url) {
   }
 
   if (target.endsWith('/clubs.csv.gz')) {
-    const data = await localJson('./data/clubs-world.json');
+    const [data,playerData] = await Promise.all([localJson('./data/clubs-world.json'),localJson('./data/players.json')]);
+    const metrics=clubMetrics(playerData.players||[]);
     return (data.clubs || []).map(c => {
       const meta = COMPETITIONS[c.competitionId] || [c.competitionId || 'Liga não informada',''];
+      const m=metrics.get(String(c.id));
       return {
         club_id:c.id,
         name:c.name,
@@ -81,7 +129,9 @@ async function localDataset(url) {
         stadium_name:c.stadium || '',
         stadium_seats:c.stadiumSeats || 0,
         coach_name:c.coach || '',
-        total_market_value:c.totalMarketValue || 0,
+        total_market_value:Number(c.totalMarketValue)||m?.totalValue||0,
+        game_team_overall:m?.overall||0,
+        game_budget_base:m?.budgetBase||0,
         last_season:2026
       };
     });
