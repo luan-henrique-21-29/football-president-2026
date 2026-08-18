@@ -11,7 +11,7 @@ function rerender(){source=null;const nav=[...document.querySelectorAll('[data-p
 function saveAndRender(){state.save.presidentLineup.updatedAt=new Date().toISOString();persist();rerender()}
 function clearSelection(){source=null;document.querySelectorAll('.is-selected-source').forEach(x=>x.classList.remove('is-selected-source'))}
 function selectSource(el,obj){clearSelection();source=obj;el.classList.add('is-selected-source')}
-function openPlayer(playerId){state.selectedSquadPlayerId=String(playerId);rerender()}
+function openPlayer(playerId){const row=[...document.querySelectorAll('[data-p2-squad-player]')].find(x=>String(x.dataset.p2SquadPlayer)===String(playerId));if(row){row.click();return}state.selectedSquadPlayerId=String(playerId)}
 function slotByPlayer(playerId){return state.save.presidentLineup?.slots?.find(s=>String(s.playerId)===String(playerId))}
 function placePlayerInSlot(playerId,targetKey,sourceKey=null){const o=ensureManual(),target=findSlot(targetKey);if(!target)return;const from=sourceKey?findSlot(sourceKey):slotByPlayer(playerId),oldTarget=target.playerId;target.playerId=String(playerId);if(from&&from!==target)from.playerId=oldTarget||null;else{const duplicate=o.slots.find(s=>s!==target&&String(s.playerId)===String(playerId));if(duplicate)duplicate.playerId=oldTarget||null}saveAndRender()}
 function handleSlotClick(el){const key=el.dataset.lineupSlot,playerId=el.dataset.playerId;if(!state.save?.presidentLineup?.enabled){if(playerId)openPlayer(playerId);return}if(!source){selectSource(el,{type:'slot',key,playerId});return}if(source.type==='slot'&&source.key===key){clearSelection();return}if(source.type==='bench')placePlayerInSlot(source.playerId,key);else placePlayerInSlot(source.playerId,key,source.key)}
