@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/update-football-data.yml'
+      - 'scripts/sync_coaches.py'
 
 permissions:
   contents: write
@@ -23,7 +24,7 @@ jobs:
       - name: Build game datapack
         run: |
           python - <<'PY'
-          import csv, gzip, io, json, math, os, re, unicodedata, urllib.request
+          import csv, gzip, io, json, math, os, urllib.request
           from datetime import date, datetime
 
           SNAPSHOT = date(2026, 8, 14)
@@ -134,11 +135,16 @@ jobs:
           print(f'Built {len(players)} players and {len(world)} clubs')
           PY
 
+      - name: Enrich coaches
+        run: |
+          python -m pip install --quiet requests beautifulsoup4
+          python scripts/sync_coaches.py
+
       - name: Commit datapack
         run: |
           git config user.name 'football-president-bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add data/players.json data/clubs-world.json data/database-meta.json
+          git add data/players.json data/clubs-world.json data/database-meta.json data/coaches.json
           git diff --cached --quiet && exit 0
-          git commit -m 'Update football player database [skip ci]'
+          git commit -m 'Update football database [skip ci]'
           git push
