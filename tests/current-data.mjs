@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {transferPricingContext} from '../src/transfer-pricing.js';
+
+const read=name=>JSON.parse(fs.readFileSync(new URL(`../data/${name}`,import.meta.url),'utf8'));
+const meta=read('database-meta.json'),coachPayload=read('coach-overrides.json'),clubs=read('clubs-world.json').clubs||[];
+assert.equal(meta.gameSnapshot,'2026-08-18','database snapshot must match the current game start date');
+assert.ok(Number(meta.playerCount)>=15000,'current datapack should contain a full world player pool');
+assert.ok(Number(meta.transferCount)>=1000,'current datapack should contain recent transfer history');
+assert.ok(clubs.some(c=>Object.prototype.hasOwnProperty.call(c,'lastSeason')),'club datapack must preserve last-season metadata');
+const coaches=new Map((coachPayload.records||[]).map(x=>[String(x.clubId),x]));
+assert.equal(coaches.get('281')?.name,'Enzo Maresca','Manchester City manager override must be current');
+assert.equal(coaches.get('418')?.name,'José Mourinho','Real Madrid manager override must be current');
+assert.equal(coaches.get('631')?.name,'Xabi Alonso','Chelsea manager override must be current');
+assert.equal(coaches.get('199')?.name,'Fernando Diniz','Corinthians manager override must be current');
+const base={marketValue:40_000_000,overall:82,potential:84,age:25};
+const short=transferPricingContext({...base,contractExpiration:'2027-01-01'},42_000_000);
+const long=transferPricingContext({...base,contractExpiration:'2030-06-30'},42_000_000);
+assert.ok(long.askingPrice>short.askingPrice,'long contracts must increase seller leverage');
+const recent=transferPricingContext({...base,lastTransferFee:55_000_000,lastTransferDate:'2026-07-01',contractExpiration:'2030-06-30'},42_000_000);
+assert.ok(recent.askingPrice>=long.askingPrice,'recent real transfer fee should inform the asking price');
+console.log('Current data and transfer pricing tests passed');
