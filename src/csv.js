@@ -3,179 +3,29 @@ export function parseCSV(text) {
   let row = [], cell = '', quoted = false;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    if (quoted) {
-      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
-      else if (ch === '"') quoted = false;
-      else cell += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === ',') { row.push(cell); cell = ''; }
-    else if (ch === '\n') { row.push(cell.replace(/\r$/, '')); rows.push(row); row = []; cell = ''; }
-    else cell += ch;
+    if (quoted) { if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') quoted = false; else cell += ch; }
+    else if (ch === '"') quoted = true; else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n') { row.push(cell.replace(/\r$/, '')); rows.push(row); row = []; cell = ''; } else cell += ch;
   }
   if (cell.length || row.length) { row.push(cell.replace(/\r$/, '')); rows.push(row); }
   if (!rows.length) return [];
   const headers = rows.shift().map((h, i) => (i === 0 ? h.replace(/^\uFEFF/, '') : h));
   return rows.filter(r => r.some(v => v !== '')).map(r => Object.fromEntries(headers.map((h, i) => [h, r[i] ?? ''])));
 }
-
-const COMPETITIONS = {
-  GB1:['Premier League','England'],GB2:['EFL Championship','England'],GB3:['League One','England'],GB4:['League Two','England'],
-  ES1:['LaLiga','Spain'],ES2:['Segunda División','Spain'],
-  IT1:['Serie A','Italy'],IT2:['Serie B','Italy'],
-  FR1:['Ligue 1','France'],FR2:['Ligue 2','France'],
-  L1:['Bundesliga','Germany'],L2:['2. Bundesliga','Germany'],
-  PO1:['Liga Portugal','Portugal'],NL1:['Eredivisie','Netherlands'],BE1:['Jupiler Pro League','Belgium'],
-  BRA1:['Campeonato Brasileiro Série A','Brazil'],BRA2:['Campeonato Brasileiro Série B','Brazil'],
-  ARG1:['Liga Profesional','Argentina'],
-  SA1:['Saudi Pro League','Saudi Arabia'],
-  MLS1:['Major League Soccer','United States'],US1:['Major League Soccer','United States'],
-  TR1:['Süper Lig','Turkey'],RU1:['Premier Liga','Russia'],GR1:['Super League 1','Greece'],
-  SC1:['Scottish Premiership','Scotland'],DK1:['Superliga','Denmark'],SE1:['Allsvenskan','Sweden'],NO1:['Eliteserien','Norway'],
-  UKR1:['Premier Liga','Ukraine'],C1:['Super League','Switzerland'],A1:['Bundesliga','Austria']
-};
-
-const LOCAL_CACHE = new Map();
-async function localJson(path) {
-  if (LOCAL_CACHE.has(path)) return LOCAL_CACHE.get(path);
-  const request = fetch(path, { cache: 'no-store' }).then(async response => {
-    if (!response.ok) throw new Error(`Falha ao carregar ${path}: ${response.status}`);
-    return response.json();
-  });
-  LOCAL_CACHE.set(path, request);
-  try { return await request; }
-  catch (error) { LOCAL_CACHE.delete(path); throw error; }
+const COMPETITIONS={GB1:['Premier League','England'],GB2:['EFL Championship','England'],GB3:['League One','England'],GB4:['League Two','England'],ES1:['LaLiga','Spain'],ES2:['Segunda División','Spain'],IT1:['Serie A','Italy'],IT2:['Serie B','Italy'],FR1:['Ligue 1','France'],FR2:['Ligue 2','France'],L1:['Bundesliga','Germany'],L2:['2. Bundesliga','Germany'],PO1:['Liga Portugal','Portugal'],NL1:['Eredivisie','Netherlands'],BE1:['Jupiler Pro League','Belgium'],BRA1:['Campeonato Brasileiro Série A','Brazil'],BRA2:['Campeonato Brasileiro Série B','Brazil'],ARG1:['Liga Profesional','Argentina'],SA1:['Saudi Pro League','Saudi Arabia'],MLS1:['Major League Soccer','United States'],US1:['Major League Soccer','United States'],TR1:['Süper Lig','Turkey'],RU1:['Premier Liga','Russia'],GR1:['Super League 1','Greece'],SC1:['Scottish Premiership','Scotland'],DK1:['Superliga','Denmark'],SE1:['Allsvenskan','Sweden'],NO1:['Eliteserien','Norway'],UKR1:['Premier Liga','Ukraine'],C1:['Super League','Switzerland'],A1:['Bundesliga','Austria']};
+const LOCAL_CACHE=new Map();
+async function localJson(path){if(LOCAL_CACHE.has(path))return LOCAL_CACHE.get(path);const request=fetch(path,{cache:'no-store'}).then(async response=>{if(!response.ok)throw new Error(`Falha ao carregar ${path}: ${response.status}`);return response.json()});LOCAL_CACHE.set(path,request);try{return await request}catch(error){LOCAL_CACHE.delete(path);throw error}}
+const SNAPSHOT='2026-08-18';
+function ageAtSnapshot(date){if(!date)return null;const born=new Date(`${String(date).slice(0,10)}T00:00:00Z`),now=new Date(`${SNAPSHOT}T00:00:00Z`);if(Number.isNaN(born.getTime()))return null;let age=now.getUTCFullYear()-born.getUTCFullYear();if(now.getUTCMonth()<born.getUTCMonth()||(now.getUTCMonth()===born.getUTCMonth()&&now.getUTCDate()<born.getUTCDate()))age--;return age}
+function gamePlayerRating(p){const value=Math.max(10000,Number(p?.value)||0);let rating=47+Math.log10(value)*5.2;const age=ageAtSnapshot(p?.birthDate);if(age!=null&&age>=30)rating+=Math.min(3.2,(age-29)*.55);if(age!=null&&age<=20)rating-=Math.max(0,(21-age)*.65);if(String(p?.position||'').toLowerCase().includes('goal')&&age!=null&&age>=29)rating+=.8;return Math.max(55,Math.min(93,Math.round(rating)))}
+function clubMetrics(players=[]){const metrics=new Map();for(const p of players){const clubId=String(p.clubId||'');if(!clubId)continue;const entry=metrics.get(clubId)||{totalValue:0,ratings:[]};entry.totalValue+=Math.max(0,Number(p.value)||0);entry.ratings.push(gamePlayerRating(p));metrics.set(clubId,entry)}for(const entry of metrics.values()){entry.ratings.sort((a,b)=>b-a);const best11=entry.ratings.slice(0,11),depth=entry.ratings.slice(11,18),first=best11.length?best11.reduce((a,b)=>a+b,0)/best11.length:70,bench=depth.length?depth.reduce((a,b)=>a+b,0)/depth.length:first;entry.overall=Math.max(58,Math.min(93,Math.round(first*.92+bench*.08)));const valueBudget=entry.totalValue*.18,strengthFloor=Math.pow(Math.max(8,entry.overall-54),2)*45000;entry.budgetBase=Math.max(4_000_000,Math.round(Math.max(valueBudget,strengthFloor)/100000)*100000)}return metrics}
+function exposeClubMetrics(metrics){if(typeof window==='undefined')return;window.__cdClubMetrics=Object.fromEntries([...metrics.entries()].map(([clubId,m])=>[clubId,{overall:m.overall,totalValue:m.totalValue,budgetBase:m.budgetBase}]))}
+async function localDataset(url){
+ const target=String(url||'');
+ if(target.endsWith('/players.csv.gz')){const data=await localJson('./data/players.json');return(data.players||[]).map(p=>({player_id:p.id,name:p.name,first_name:p.firstName||'',last_name:p.lastName||'',current_club_id:p.clubId,current_club_name:p.club,current_club_domestic_competition_id:p.competitionId||'',country_of_citizenship:p.nationality||'',date_of_birth:p.birthDate||'',position:p.position||'',sub_position:p.subPosition||'',foot:p.foot||'',height_in_cm:p.height||0,market_value_in_eur:p.value||0,highest_market_value_in_eur:p.highestValue||0,contract_expiration_date:p.contractUntil||'',agent_name:p.agentName||'',image_url:p.imageUrl||'',last_season:2026}))}
+ if(target.endsWith('/clubs.csv.gz')){const[data,playerData]=await Promise.all([localJson('./data/clubs-world.json'),localJson('./data/players.json')]);const metrics=clubMetrics(playerData.players||[]);exposeClubMetrics(metrics);return(data.clubs||[]).map(c=>{const meta=COMPETITIONS[c.competitionId]||[c.competitionId||'Liga não informada',''],m=metrics.get(String(c.id));return{club_id:c.id,name:c.name,domestic_competition_id:c.competitionId||'',competition_name:meta[0],country_name:meta[1],squad_size:c.squadSize||0,average_age:c.averageAge||'',stadium_name:c.stadium||'',stadium_seats:c.stadiumSeats||0,coach_name:c.coach||'',total_market_value:Number(c.totalMarketValue)||m?.totalValue||0,last_season:Number(c.lastSeason)||0}})}
+ if(target.endsWith('/competitions.csv.gz')){let ids=Object.keys(COMPETITIONS);try{const data=await localJson('./data/clubs-world.json');ids=[...new Set([...ids,...(data.clubs||[]).map(c=>c.competitionId).filter(Boolean)])]}catch{}return ids.map(id=>{const meta=COMPETITIONS[id]||[id,''];return{competition_id:id,competition_code:id,name:meta[0],country_name:meta[1],type:'domestic_league',sub_type:'first_or_second_tier'}})}
+ return null
 }
-
-const SNAPSHOT='2026-08-14';
-function ageAtSnapshot(date){
-  if(!date)return null;
-  const born=new Date(`${String(date).slice(0,10)}T00:00:00Z`),now=new Date(`${SNAPSHOT}T00:00:00Z`);
-  if(Number.isNaN(born.getTime()))return null;
-  let age=now.getUTCFullYear()-born.getUTCFullYear();
-  if(now.getUTCMonth()<born.getUTCMonth()||(now.getUTCMonth()===born.getUTCMonth()&&now.getUTCDate()<born.getUTCDate()))age--;
-  return age;
-}
-function gamePlayerRating(p){
-  const value=Math.max(10000,Number(p?.value)||0);
-  let rating=47+Math.log10(value)*5.2;
-  const age=ageAtSnapshot(p?.birthDate);
-  if(age!=null&&age>=30)rating+=Math.min(3.2,(age-29)*.55);
-  if(age!=null&&age<=20)rating-=Math.max(0,(21-age)*.65);
-  if(String(p?.position||'').toLowerCase().includes('goal')&&age!=null&&age>=29)rating+=.8;
-  return Math.max(55,Math.min(93,Math.round(rating)));
-}
-function clubMetrics(players=[]){
-  const metrics=new Map();
-  for(const p of players){
-    const clubId=String(p.clubId||'');if(!clubId)continue;
-    const entry=metrics.get(clubId)||{totalValue:0,ratings:[]};
-    entry.totalValue+=Math.max(0,Number(p.value)||0);
-    entry.ratings.push(gamePlayerRating(p));
-    metrics.set(clubId,entry);
-  }
-  for(const entry of metrics.values()){
-    entry.ratings.sort((a,b)=>b-a);
-    const best11=entry.ratings.slice(0,11),depth=entry.ratings.slice(11,18);
-    const first=best11.length?best11.reduce((a,b)=>a+b,0)/best11.length:70;
-    const bench=depth.length?depth.reduce((a,b)=>a+b,0)/depth.length:first;
-    entry.overall=Math.max(58,Math.min(93,Math.round(first*.92+bench*.08)));
-    const valueBudget=entry.totalValue*.18;
-    const strengthFloor=Math.pow(Math.max(8,entry.overall-54),2)*45000;
-    entry.budgetBase=Math.max(4_000_000,Math.round(Math.max(valueBudget,strengthFloor)/100000)*100000);
-  }
-  return metrics;
-}
-function exposeClubMetrics(metrics){
-  if(typeof window==='undefined')return;
-  window.__cdClubMetrics=Object.fromEntries([...metrics.entries()].map(([clubId,m])=>[clubId,{overall:m.overall,totalValue:m.totalValue,budgetBase:m.budgetBase}]));
-}
-
-async function localDataset(url) {
-  const target = String(url || '');
-  if (target.endsWith('/players.csv.gz')) {
-    const data = await localJson('./data/players.json');
-    return (data.players || []).map(p => ({
-      player_id:p.id,
-      name:p.name,
-      first_name:p.firstName || '',
-      last_name:p.lastName || '',
-      current_club_id:p.clubId,
-      current_club_name:p.club,
-      current_club_domestic_competition_id:p.competitionId || '',
-      country_of_citizenship:p.nationality || '',
-      date_of_birth:p.birthDate || '',
-      position:p.position || '',
-      sub_position:p.subPosition || '',
-      foot:p.foot || '',
-      height_in_cm:p.height || 0,
-      market_value_in_eur:p.value || 0,
-      highest_market_value_in_eur:p.highestValue || 0,
-      contract_expiration_date:p.contractUntil || '',
-      image_url:p.imageUrl || '',
-      last_season:2026
-    }));
-  }
-
-  if (target.endsWith('/clubs.csv.gz')) {
-    const [data,playerData] = await Promise.all([localJson('./data/clubs-world.json'),localJson('./data/players.json')]);
-    const metrics=clubMetrics(playerData.players||[]);exposeClubMetrics(metrics);
-    return (data.clubs || []).map(c => {
-      const meta = COMPETITIONS[c.competitionId] || [c.competitionId || 'Liga não informada',''];
-      const m=metrics.get(String(c.id));
-      return {
-        club_id:c.id,
-        name:c.name,
-        domestic_competition_id:c.competitionId || '',
-        competition_name:meta[0],
-        country_name:meta[1],
-        squad_size:c.squadSize || 0,
-        average_age:c.averageAge || '',
-        stadium_name:c.stadium || '',
-        stadium_seats:c.stadiumSeats || 0,
-        coach_name:c.coach || '',
-        total_market_value:Number(c.totalMarketValue)||m?.totalValue||0,
-        last_season:2026
-      };
-    });
-  }
-
-  if (target.endsWith('/competitions.csv.gz')) {
-    let ids = Object.keys(COMPETITIONS);
-    try {
-      const data = await localJson('./data/clubs-world.json');
-      ids = [...new Set([...ids, ...(data.clubs || []).map(c => c.competitionId).filter(Boolean)])];
-    } catch {}
-    return ids.map(id => {
-      const meta = COMPETITIONS[id] || [id,''];
-      return { competition_id:id, competition_code:id, name:meta[0], country_name:meta[1], type:'domestic_league', sub_type:'first_or_second_tier' };
-    });
-  }
-
-  return null;
-}
-
-export async function fetchText(url, { gzip = false } = {}) {
-  const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`Falha ao carregar ${url}: ${response.status}`);
-  if (!gzip) return response.text();
-
-  const contentEncoding = response.headers.get('content-encoding') || '';
-  if (contentEncoding.toLowerCase().includes('gzip')) return response.text();
-
-  if ('DecompressionStream' in window && response.body) {
-    const stream = response.body.pipeThrough(new DecompressionStream('gzip'));
-    return new Response(stream).text();
-  }
-
-  throw new Error('Seu navegador não oferece descompactação gzip. Use uma versão recente do Chrome.');
-}
-
-export async function fetchCSV(url, options) {
-  try {
-    const local = await localDataset(url);
-    if (local) return local;
-  } catch (error) {
-    console.warn('Datapack local indisponível; tentando fonte externa.', error);
-  }
-  return parseCSV(await fetchText(url, options));
-}
+export async function fetchText(url,{gzip=false}={}){const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw new Error(`Falha ao carregar ${url}: ${response.status}`);if(!gzip)return response.text();const contentEncoding=response.headers.get('content-encoding')||'';if(contentEncoding.toLowerCase().includes('gzip'))return response.text();if('DecompressionStream' in window&&response.body){const stream=response.body.pipeThrough(new DecompressionStream('gzip'));return new Response(stream).text()}throw new Error('Este navegador não oferece descompactação gzip.')}
+export async function fetchCSV(url,options){try{const local=await localDataset(url);if(local)return local}catch(error){console.warn('Datapack local indisponível; tentando fonte externa.',error)}return parseCSV(await fetchText(url,options))}
