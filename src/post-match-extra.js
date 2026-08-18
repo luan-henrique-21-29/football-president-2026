@@ -19,7 +19,7 @@ function repairNonLeagueSummary(save,fixture,result){
 export function runPostMatchExtra(save,world,club,fixture,result,matchSquad,fullSquad){
  ensureBoardState(save,club);
  repairNonLeagueSummary(save,fixture,result);
- const playerEvents=processPlayerMatch(save,result,fixture,matchSquad);
+ const playerEvents=processPlayerMatch(save,result,fixture,matchSquad,fullSquad);
  recoverAndDevelop(save,fullSquad,fixture.date,save.facilities?.training||5,result.coachProfile?.youthDevelopment||60);
  const competitionEvent=processKnockoutResult(save,fixture,result,club);
  const worldEvents=save.plan2LastWorldTick===fixture.date?[]:simulateWorldTick(save,world,fixture.date,club.id);
