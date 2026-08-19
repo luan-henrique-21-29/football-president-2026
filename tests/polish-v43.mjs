@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(new URL(`../${p}`,import.meta.url),'utf8');
+const setup=read('src/setup-v4.js'),assets=read('src/club-assets.js'),viewer=read('src/match-viewer-v8.js'),shell=read('src/shell-v2.js'),settings=read('src/settings-v2.js'),audio=read('src/match-audio.js');
+assert.ok(!setup.includes('club-dynasty-26-club-select.webp'),'club picker must not use old blurred hero artwork');
+assert.ok(setup.includes('setupCountrySelect')&&setup.includes('setupLeagueSelect'),'compact setup filters must exist');
+assert.ok(assets.includes('Sporting_Clube_de_Portugal_2026.svg'),'Sporting must use current 2026 crest override');
+for(const type of ['GOAL','OFFSIDE','CARD','INJURY','TACTIC'])assert.ok(viewer.includes(type),`viewer must present ${type}`);
+assert.ok(viewer.includes('attendance')&&viewer.includes('Público'),'viewer must display attendance');
+assert.ok(shell.includes('quickSave')&&shell.includes('data-page="settings"'),'career toolbar must expose save and settings');
+assert.ok(settings.includes('data-match-audio')&&audio.includes('matchEffectsEnabled'),'match audio setting must be independent and master-aware');
+console.log('Polish v43 tests passed');
