@@ -14,7 +14,7 @@ TARGET_COMPETITIONS={'GB1','GB2','ES1','ES2','IT1','IT2','FR1','FR2','BRA1','BRA
 OUT=Path('data');OUT.mkdir(exist_ok=True)
 
 def fetch_gz(name):
-    req=urllib.request.Request(f'{BASE}/{name}.csv.gz',headers={'User-Agent':'ClubDynasty26/2.0 (+github-actions)'})
+    req=urllib.request.Request(f'{BASE}/{name}.csv.gz',headers={'User-Agent':'GolacoClash/3.0 (+github-actions)'})
     with urllib.request.urlopen(req,timeout=180) as response:raw=response.read()
     return gzip.decompress(raw).decode('utf-8-sig',errors='replace')
 def num(value,default=0):
@@ -36,18 +36,25 @@ def age_on(dob):
     try:
         born=datetime.strptime(str(dob)[:10],'%Y-%m-%d').date();return SNAPSHOT.year-born.year-((SNAPSHOT.month,SNAPSHOT.day)<(born.month,born.day))
     except:return 25
-def overall(value,age,position):
-    value=max(0,value);score=55+10.5*math.log10(value/100000+1) if value else 54
-    if 21<=age<=29:score+=1
-    elif age<=18:score-=2
-    elif age>=36:score-=4
-    elif age>=33:score-=2
-    if position=='Goalkeeper' and age>=30:score+=1
-    return max(50,min(93,round(score)))
+def overall(value,age,position,highest=0):
+    current=max(0,value);peak=max(current,highest);peak_share=.05 if age<=21 else .09 if age<=24 else .13 if age<=29 else .23 if age<=32 else .30
+    bias=1.18 if position=='Goalkeeper' else 1.07 if position=='Defender' else 1.0
+    effective=max(80_000,(current*(1-peak_share)+peak*peak_share)*bias)
+    score=59+11*math.log10(effective/100000+1)
+    if age<=18:score-=3
+    elif age<=20:score-=1.5
+    elif age>=37:score-=3.2
+    elif age>=35:score-=2
+    elif age>=33:score-=1
+    if position=='Goalkeeper' and 29<=age<=34:score+=.6
+    if current>=80_000_000:score+=.8
+    if current>=120_000_000:score+=.6
+    if peak>=100_000_000 and age>=30:score+=.4
+    return max(50,min(94,round(score)))
 def potential(ovr,age,value):
-    bonus=8 if age<=18 else 6 if age<=20 else 4 if age<=22 else 2 if age<=24 else -1 if age>=31 else 0
-    if value>=50_000_000 and age<=23:bonus+=1
-    return max(ovr,min(95,ovr+bonus))
+    bonus=9 if age<=18 else 7 if age<=20 else 5 if age<=22 else 3 if age<=24 else 1 if age<=27 else 0
+    if value>=35_000_000 and age<=22:bonus+=1
+    return max(ovr,min(96,ovr+bonus))
 def transfer_fee(row):
     fee=num(row.get('transfer_fee'));raw=str(row.get('transfer_fee') or '').lower()
     if any(x in raw for x in ('free','loan','end of loan','?','-')) and not re.search(r'\d',raw):return 0
@@ -79,7 +86,7 @@ for row in players_rows:
     if not name or not pid:continue
     last_season=num(row.get('last_season'))
     if last_season and last_season<SNAPSHOT.year-1:continue
-    dob=iso(row.get('date_of_birth'));age=age_on(dob);position=(row.get('position') or 'Unknown').strip();base_value=num(row.get('market_value_in_eur'));club_id=str(row.get('current_club_id') or '').strip();club_name=(row.get('current_club_name') or '').strip();competition_id=(row.get('current_club_domestic_competition_id') or '').strip();last=latest_transfer.get(pid)
+    dob=iso(row.get('date_of_birth'));age=age_on(dob);position=(row.get('position') or 'Unknown').strip();base_value=num(row.get('market_value_in_eur'));highest=num(row.get('highest_market_value_in_eur'));club_id=str(row.get('current_club_id') or '').strip();club_name=(row.get('current_club_name') or '').strip();competition_id=(row.get('current_club_domestic_competition_id') or '').strip();last=latest_transfer.get(pid)
     if last:
         last_date=parse_date(last['date'])
         if last_date and last_date>=date(SNAPSHOT.year-1,6,1) and last['toClubId'] and last['toClubId']!='0':
@@ -88,9 +95,9 @@ for row in players_rows:
         if last_date and last_date>=date(SNAPSHOT.year,5,1) and last['marketValueAtTransfer']>0:base_value=last['marketValueAtTransfer']
     if not club_name and club_id in club_map:club_name=club_map[club_id]['name']
     if not club_name:continue
-    ovr=overall(base_value,age,position)
-    players.append({'id':pid,'name':name,'firstName':(row.get('first_name') or '').strip(),'lastName':(row.get('last_name') or '').strip(),'clubId':club_id,'club':club_name,'competitionId':competition_id,'nationality':(row.get('country_of_citizenship') or '').strip(),'birthDate':dob,'age':age,'position':position,'subPosition':(row.get('sub_position') or '').strip(),'foot':(row.get('foot') or '').strip(),'height':num(row.get('height_in_cm')),'value':base_value,'highestValue':num(row.get('highest_market_value_in_eur')),'contractUntil':iso(row.get('contract_expiration_date')),'agentName':(row.get('agent_name') or '').strip(),'imageUrl':(row.get('image_url') or '').strip(),'overall':ovr,'potential':potential(ovr,age,base_value),'joinedOn':last['date'] if last and last.get('toClubId')==club_id else '','lastTransferFee':last['fee'] if last else 0,'lastTransferDate':last['date'] if last else '','lastTransferFromId':last['fromClubId'] if last else '','lastTransferFrom':last['fromClub'] if last else '','lastTransferToId':last['toClubId'] if last else '','lastTransferTo':last['toClub'] if last else ''})
+    ovr=overall(base_value,age,position,highest)
+    players.append({'id':pid,'name':name,'firstName':(row.get('first_name') or '').strip(),'lastName':(row.get('last_name') or '').strip(),'clubId':club_id,'club':club_name,'competitionId':competition_id,'nationality':(row.get('country_of_citizenship') or '').strip(),'birthDate':dob,'age':age,'position':position,'subPosition':(row.get('sub_position') or '').strip(),'foot':(row.get('foot') or '').strip(),'height':num(row.get('height_in_cm')),'value':base_value,'highestValue':highest,'contractUntil':iso(row.get('contract_expiration_date')),'agentName':(row.get('agent_name') or '').strip(),'imageUrl':(row.get('image_url') or '').strip(),'overall':ovr,'potential':potential(ovr,age,base_value),'joinedOn':last['date'] if last and last.get('toClubId')==club_id else '','lastTransferFee':last['fee'] if last else 0,'lastTransferDate':last['date'] if last else '','lastTransferFromId':last['fromClubId'] if last else '','lastTransferFrom':last['fromClub'] if last else '','lastTransferToId':last['toClubId'] if last else '','lastTransferTo':last['toClub'] if last else ''})
 players.sort(key=lambda x:(-x['overall'],-x['value'],x['name']));current_transfers.sort(key=lambda x:(x['date'],x['fee']),reverse=True)
-meta={'gameSnapshot':SNAPSHOT.isoformat(),'syncedAt':datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),'source':'dcaribou/transfermarkt-datasets (weekly Transfermarkt dataset)','playerCount':len(players),'clubCount':len(clubs),'transferCount':len(current_transfers),'overallNote':'OVR e potencial são índices internos do jogo. Valores de mercado, contratos e transferências vêm do datapack de futebol e não são ratings da EA.'}
+meta={'gameSnapshot':SNAPSHOT.isoformat(),'syncedAt':datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),'source':'dcaribou/transfermarkt-datasets (weekly Transfermarkt dataset)','playerCount':len(players),'clubCount':len(clubs),'transferCount':len(current_transfers),'ratingModel':'GCP calibrated market-age-position v2','overallNote':'OVR e potencial são índices internos do Golaço Clash. Valores de mercado, contratos e transferências vêm do datapack de futebol e não são ratings de EA/FC.'}
 (OUT/'players.json').write_text(json.dumps({'meta':meta,'players':players},ensure_ascii=False,separators=(',',':')),encoding='utf-8');(OUT/'clubs-world.json').write_text(json.dumps({'meta':meta,'clubs':clubs},ensure_ascii=False,separators=(',',':')),encoding='utf-8');(OUT/'transfers.json').write_text(json.dumps({'meta':meta,'transfers':current_transfers[:5000]},ensure_ascii=False,separators=(',',':')),encoding='utf-8');(OUT/'database-meta.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf-8')
 print(f'Built {len(players)} players, {len(clubs)} clubs and {len(current_transfers)} recent transfers for {SNAPSHOT}')
