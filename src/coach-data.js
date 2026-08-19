@@ -1,4 +1,5 @@
 import './player-extra-data.js';
+import './roster-integrity.js';
 import {installButtonUX} from './button-ux.js';
 import {state,persist} from './state.js';
 installButtonUX();
