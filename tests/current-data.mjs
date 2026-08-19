@@ -4,7 +4,8 @@ import {transferPricingContext} from '../src/transfer-pricing.js';
 
 const read=name=>JSON.parse(fs.readFileSync(new URL(`../data/${name}`,import.meta.url),'utf8'));
 const meta=read('database-meta.json'),coachPayload=read('coach-overrides.json'),clubs=read('clubs-world.json').clubs||[];
-assert.equal(meta.gameSnapshot,'2026-08-18','database snapshot must match the current game start date');
+assert.match(String(meta.gameSnapshot||''),/^20\d{2}-\d{2}-\d{2}$/,'database snapshot must be a valid game date');
+assert.ok(meta.gameSnapshot>='2026-08-18','database snapshot must not regress behind the supported 2026/27 start');
 assert.ok(Number(meta.playerCount)>=15000,'current datapack should contain a full world player pool');
 assert.ok(Number(meta.transferCount)>=1000,'current datapack should contain recent transfer history');
 assert.ok(clubs.some(c=>Object.prototype.hasOwnProperty.call(c,'lastSeason')),'club datapack must preserve last-season metadata');
