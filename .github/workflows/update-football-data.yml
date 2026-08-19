@@ -9,6 +9,7 @@ on:
     paths:
       - '.github/workflows/update-football-data.yml'
       - 'scripts/build_datapack.py'
+      - 'scripts/append_free_agents.py'
       - 'scripts/sync_live_squads.py'
       - 'scripts/sync_coaches.py'
       - 'data/coach-overrides.json'
@@ -40,6 +41,10 @@ jobs:
       - name: Build current football datapack
         run: python scripts/build_datapack.py
 
+      - name: Add current free agents
+        continue-on-error: true
+        run: python scripts/append_free_agents.py
+
       - name: Merge live squad contracts and values
         continue-on-error: true
         run: python scripts/sync_live_squads.py
@@ -60,6 +65,10 @@ jobs:
               if name=='coaches.json':
                   rows=data.get('records',[])
                   if not rows or any(not str(r.get('name','')).strip() for r in rows): raise SystemExit('Coach database contains missing names')
+              if name=='players.json':
+                  rows=data.get('players',[])
+                  if not rows: raise SystemExit('Player database is empty')
+                  print('free agents',sum(1 for r in rows if str(r.get('clubId'))=='FREE'))
               print('OK',p)
           PY
 
