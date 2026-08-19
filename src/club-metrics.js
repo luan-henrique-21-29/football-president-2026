@@ -1,45 +1,6 @@
-export function applyRuntimeClubMetrics(world){
-  if(!world?.clubs?.length||typeof window==='undefined')return false;
-  const metrics=window.__cdClubMetrics||{};
-  let changed=false;
-  for(const club of world.clubs){
-    const m=metrics[String(club.id)];
-    if(!m)continue;
-    const overall=Number(m.overall)||0,totalValue=Number(m.totalValue)||0,budgetBase=Number(m.budgetBase)||0;
-    if(overall&&club.teamOverall!==overall){club.teamOverall=overall;club.reputation=Math.min(99,overall+5);changed=true;}
-    if(totalValue&&club.marketValue!==totalValue){club.marketValue=totalValue;changed=true;}
-    if(budgetBase&&club.budgetBase!==budgetBase){club.budgetBase=budgetBase;changed=true;}
-  }
-  return changed;
-}
-
-export function syncCareerClubMetrics(save,world){
-  if(!save||!world?.clubs?.length)return false;
-  let changed=false;
-  const own=world.findClub?.(save.clubId);
-  if(own&&save.clubSnapshot){
-    if(save.clubSnapshot.teamOverall!==own.teamOverall){save.clubSnapshot.teamOverall=own.teamOverall;changed=true;}
-    if(save.clubSnapshot.marketValue!==own.marketValue){save.clubSnapshot.marketValue=own.marketValue;changed=true;}
-    if(save.clubSnapshot.budgetBase!==own.budgetBase){save.clubSnapshot.budgetBase=own.budgetBase;changed=true;}
-  }
-  for(const fixture of save.calendar||[]){
-    const opponent=world.findClub?.(fixture.opponentId);if(!opponent)continue;
-    if(fixture.opponentOverall!==opponent.teamOverall){fixture.opponentOverall=opponent.teamOverall;changed=true;}
-  }
-  return changed;
-}
-
-export function runtimeClubOverall(club){
-  if(!club)return 72;
-  const m=typeof window!=='undefined'?window.__cdClubMetrics?.[String(club.id)]:null;
-  return Number(m?.overall)||Number(club.teamOverall)||72;
-}
-
-export function runtimeClubBudget(club){
-  if(!club)return 8_000_000;
-  const m=typeof window!=='undefined'?window.__cdClubMetrics?.[String(club.id)]:null;
-  if(Number(m?.budgetBase)>0)return Number(m.budgetBase);
-  if(Number(club.budgetBase)>0)return Number(club.budgetBase);
-  const mv=Number(club.marketValue)||0;
-  return Math.max(8_000_000,Math.round((mv>0?mv*.18:8_000_000)/100000)*100000);
-}
+function squadOverall(players=[]){if(players.length<11)return 0;const sorted=[...players].sort((a,b)=>Number(b.overall||0)-Number(a.overall||0)),xi=sorted.slice(0,11),depth=sorted.slice(11,18),avg=a=>a.length?a.reduce((s,p)=>s+Number(p.overall||0),0)/a.length:0;return Math.round(avg(xi)*.88+(depth.length?avg(depth):avg(xi))*.12)}
+export function recalculateClubMetricsFromPlayers(world){if(!world?.clubs?.length||!world?.players?.length)return 0;const byClub=new Map();for(const p of world.players){const id=String(p.currentClubId||p.clubId||'');if(!id)continue;if(!byClub.has(id))byClub.set(id,[]);byClub.get(id).push(p)}let changed=0;for(const club of world.clubs){const list=byClub.get(String(club.id))||[];if(list.length<11)continue;const overall=squadOverall(list),totalValue=list.reduce((s,p)=>s+Math.max(0,Number(p.marketValue||p.value)||0),0),budgetBase=Math.max(8_000_000,Math.round(totalValue*.18/100000)*100000);if(overall&&club.teamOverall!==overall){club.teamOverall=overall;club.reputation=Math.min(99,overall+5);changed++}if(totalValue>0)club.marketValue=totalValue;if(budgetBase>0)club.budgetBase=budgetBase}world.playerMetricVersion='gcp-calibrated-v2';return changed}
+export function applyRuntimeClubMetrics(world){if(!world?.clubs?.length||typeof window==='undefined')return false;const metrics=window.__cdClubMetrics||{};let changed=false;for(const club of world.clubs){const m=metrics[String(club.id)];if(!m)continue;const overall=Number(m.overall)||0,totalValue=Number(m.totalValue)||0,budgetBase=Number(m.budgetBase)||0;if(overall&&club.teamOverall!==overall){club.teamOverall=overall;club.reputation=Math.min(99,overall+5);changed=true}if(totalValue&&club.marketValue!==totalValue){club.marketValue=totalValue;changed=true}if(budgetBase&&club.budgetBase!==budgetBase){club.budgetBase=budgetBase;changed=true}}return changed}
+export function syncCareerClubMetrics(save,world){if(!save||!world?.clubs?.length)return false;let changed=false;const own=world.findClub?.(save.clubId);if(own&&save.clubSnapshot){if(save.clubSnapshot.teamOverall!==own.teamOverall){save.clubSnapshot.teamOverall=own.teamOverall;changed=true}if(save.clubSnapshot.marketValue!==own.marketValue){save.clubSnapshot.marketValue=own.marketValue;changed=true}if(save.clubSnapshot.budgetBase!==own.budgetBase){save.clubSnapshot.budgetBase=own.budgetBase;changed=true}}for(const fixture of save.calendar||[]){const opponent=world.findClub?.(fixture.opponentId);if(!opponent)continue;if(fixture.opponentOverall!==opponent.teamOverall){fixture.opponentOverall=opponent.teamOverall;changed=true}}return changed}
+export function runtimeClubOverall(club){if(!club)return 72;const m=typeof window!=='undefined'?window.__cdClubMetrics?.[String(club.id)]:null;return Number(m?.overall)||Number(club.teamOverall)||72}
+export function runtimeClubBudget(club){if(!club)return 8_000_000;const m=typeof window!=='undefined'?window.__cdClubMetrics?.[String(club.id)]:null;if(Number(m?.budgetBase)>0)return Number(m.budgetBase);if(Number(club.budgetBase)>0)return Number(club.budgetBase);const mv=Number(club.marketValue)||0;return Math.max(8_000_000,Math.round((mv>0?mv*.18:8_000_000)/100000)*100000)}
