@@ -89,12 +89,15 @@ export function positionFit(player,slot){
 export function fitLabel(fit){return fit>=.98?'Natural':fit>=.92?'Compatível':fit>=.82?'Adaptado':'Fora de posição'}
 export function effectiveOverall(player,slot){const base=Number(player?.overall||65),fit=positionFit(player,slot),penalty=Math.round((1-fit)*42);return clamp(base-penalty,35,99)}
 
-export function lineupSlotScore(player,slot,{rotation=0}={}){const fit=positionFit(player,slot),ovr=Number(player?.overall||65),form=Number(player?.form??70),energy=Number(player?.energy??100),starter=Number(player?.starterPriority||0)+(player?.realLifeStarter?12:0),natural=fit>=.98?95:fit>=.92?50:fit>=.84?8:-80;return fit*420+natural+ovr*5.4+form*.12+energy*(.025+Math.max(0,rotation)*.05)+starter}
+export function lineupSlotScore(player,slot,{rotation=0}={}){
+ const fit=positionFit(player,slot),ovr=Number(player?.overall||65),form=Number(player?.form??70),energy=Number(player?.energy??100),rawPriority=Number(player?.starterPriority||0),starter=Math.min(8,rawPriority*.12+(player?.realLifeStarter?3:0)),natural=fit>=.98?300:fit>=.92?110:fit>=.84?-40:-280;
+ return fit*200+natural+ovr*20+form*.025+energy*(.008+Math.max(0,rotation)*.012)+starter;
+}
 function scoreForSlot(player,slot){return lineupSlotScore(player,slot)}
 export function assignPlayersToFormation(players,formation='4-3-3',preferredIds=[],options={}){
  const slots=formationSlots(formation),pool=(players||[]).filter(Boolean),preferred=new Map(preferredIds.map((id,i)=>[String(id),preferredIds.length-i])),used=new Set(),out=[];
  for(const [key,slot] of slots){
-  const candidates=pool.filter(p=>!used.has(String(p.id))).sort((a,b)=>(lineupSlotScore(b,slot,options)+(preferred.get(String(b.id))||0)*.05)-(lineupSlotScore(a,slot,options)+(preferred.get(String(a.id))||0)*.05));
+  const candidates=pool.filter(p=>!used.has(String(p.id))).sort((a,b)=>(lineupSlotScore(b,slot,options)+(preferred.get(String(b.id))||0)*.02)-(lineupSlotScore(a,slot,options)+(preferred.get(String(a.id))||0)*.02));
   const p=candidates[0]||null;if(p)used.add(String(p.id));out.push({key,slot,playerId:p?String(p.id):null});
  }
  return out;
