@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {calibratedOverall,calibratedPotential} from '../src/player-rating.js';
+const elite={marketValue:120_000_000,highestValue:140_000_000,age:25,position:'Attack'};
+const strong={marketValue:45_000_000,highestValue:55_000_000,age:27,position:'Midfield'};
+const veteran={marketValue:20_000_000,highestValue:100_000_000,age:33,position:'Attack'};
+const reserve={marketValue:2_000_000,highestValue:3_000_000,age:26,position:'Defender'};
+assert.ok(calibratedOverall(elite)>=91,'elite players should reach elite OVR range');
+assert.ok(calibratedOverall(strong)>=85,'strong starters should not be artificially low');
+assert.ok(calibratedOverall(veteran)>=83,'high-level veterans retain ability beyond current resale value');
+assert.ok(calibratedOverall(reserve)<82,'lower market level should stay below top starters');
+const prospect={marketValue:30_000_000,highestValue:30_000_000,age:19,position:'Midfield'};
+assert.ok(calibratedPotential(prospect)>calibratedOverall(prospect),'young players need development room');
+console.log('player-rating: ok', {elite:calibratedOverall(elite),strong:calibratedOverall(strong),veteran:calibratedOverall(veteran),reserve:calibratedOverall(reserve)});
