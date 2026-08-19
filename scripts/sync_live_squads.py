@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 API='https://transfermarkt-api.fly.dev/clubs/{club_id}/players'
 SQUAD_URL='https://www.transfermarkt.com/-/kader/verein/{club_id}/saison_id/2026/plus/1'
 TARGET={'GB1','GB2','ES1','ES2','IT1','IT2','FR1','FR2','BRA1','BRA2','MLS1','SA1'}
-API_HEADERS={'User-Agent':'ClubDynasty26/2.0 (+github-actions)','Accept':'application/json'}
+API_HEADERS={'User-Agent':'GolacoClash/3.0 (+github-actions)','Accept':'application/json'}
 WEB_HEADERS={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36','Accept-Language':'en-US,en;q=0.9'}
 TODAY=date.today()
 
@@ -44,19 +44,26 @@ def age(dob):
         d=datetime.strptime(str(dob)[:10],'%Y-%m-%d').date();return TODAY.year-d.year-((TODAY.month,TODAY.day)<(d.month,d.day))
     except:return 25
 
-def overall(value,years,pos):
-    value=max(0,val(value));score=55+10.5*math.log10(value/100000+1) if value else 54
-    if 21<=years<=29:score+=1
-    elif years<=18:score-=2
-    elif years>=36:score-=4
-    elif years>=33:score-=2
-    if str(pos).lower()=='goalkeeper' and years>=30:score+=1
-    return max(50,min(93,round(score)))
+def overall(value,years,pos,highest=0):
+    current=max(0,val(value));peak=max(current,val(highest));peak_share=.05 if years<=21 else .09 if years<=24 else .13 if years<=29 else .23 if years<=32 else .30
+    pl=str(pos or '').lower();bias=1.18 if 'goalkeeper' in pl else 1.07 if any(x in pl for x in ('defender','back','centre-back','full-back')) else 1.0
+    effective=max(80_000,(current*(1-peak_share)+peak*peak_share)*bias)
+    score=59+11*math.log10(effective/100000+1)
+    if years<=18:score-=3
+    elif years<=20:score-=1.5
+    elif years>=37:score-=3.2
+    elif years>=35:score-=2
+    elif years>=33:score-=1
+    if 'goalkeeper' in pl and 29<=years<=34:score+=.6
+    if current>=80_000_000:score+=.8
+    if current>=120_000_000:score+=.6
+    if peak>=100_000_000 and years>=30:score+=.4
+    return max(50,min(94,round(score)))
 
 def potential(ovr,years,value):
-    bonus=8 if years<=18 else 6 if years<=20 else 4 if years<=22 else 2 if years<=24 else -1 if years>=31 else 0
-    if val(value)>=50_000_000 and years<=23:bonus+=1
-    return max(ovr,min(95,ovr+bonus))
+    bonus=9 if years<=18 else 7 if years<=20 else 5 if years<=22 else 3 if years<=24 else 1 if years<=27 else 0
+    if val(value)>=35_000_000 and years<=22:bonus+=1
+    return max(ovr,min(96,ovr+bonus))
 
 def request_api(session,club_id):
     try:
@@ -111,8 +118,8 @@ def merge_row(row,club,current):
         if row.get('signed_from') or row.get('signedFrom'):current['signedFrom']=row.get('signed_from') or row.get('signedFrom')
         if row.get('status'):current['status']=row.get('status')
         if row.get('image_url') and not current.get('imageUrl'):current['imageUrl']=row.get('image_url')
-        current['position']=position;current['overall']=overall(current.get('value'),years,position);current['potential']=potential(current['overall'],years,current.get('value'));current['liveSquadCheckedAt']=TODAY.isoformat();return current,False
-    ovr=overall(market,years,position);nats=row.get('nationality') or []
+        current['position']=position;current['overall']=overall(current.get('value'),years,position,current.get('highestValue'));current['potential']=potential(current['overall'],years,current.get('value'));current['liveSquadCheckedAt']=TODAY.isoformat();return current,False
+    ovr=overall(market,years,position,market);nats=row.get('nationality') or []
     nationality=', '.join(nats) if isinstance(nats,list) else str(nats)
     return {'id':str(row.get('id')),'name':str(row.get('name') or '').strip(),'firstName':'','lastName':'','clubId':cid,'club':club.get('name',''),'competitionId':club.get('competitionId',''),'nationality':nationality,'birthDate':dob,'age':years,'position':position,'subPosition':'','foot':row.get('foot') or '','height':val(row.get('height')),'value':market,'highestValue':market,'contractUntil':contract,'agentName':'','imageUrl':row.get('image_url') or '','overall':ovr,'potential':potential(ovr,years,market),'joinedOn':joined,'signedFrom':row.get('signed_from') or row.get('signedFrom') or '','lastTransferFee':0,'lastTransferDate':'','lastTransferFromId':'','lastTransferFrom':'','lastTransferToId':cid,'lastTransferTo':club.get('name',''),'liveSquadCheckedAt':TODAY.isoformat()},True
 
@@ -136,8 +143,8 @@ def main():
             if is_new:players.append(merged);by_id[pid]=merged;added+=1
             else:updated+=1
         print(f'[{idx}/{len(targets)}] {club.get("name")}: {seen} players ({source})');time.sleep(1.05 if source=='direct' else .6)
-    meta=payload.get('meta',{});meta.update({'gameSnapshot':TODAY.isoformat(),'liveSquadsSyncedAt':datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),'liveSquadClubsSuccess':success,'liveSquadClubsFailed':failed,'liveSquadApiSuccess':api_ok,'liveSquadDirectSuccess':direct_ok,'playerCount':len(players)});payload['meta']=meta;players.sort(key=lambda p:(-val(p.get('overall')),-val(p.get('value')),p.get('name','')));p_path.write_text(json.dumps(payload,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+    meta=payload.get('meta',{});meta.update({'gameSnapshot':TODAY.isoformat(),'liveSquadsSyncedAt':datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),'liveSquadClubsSuccess':success,'liveSquadClubsFailed':failed,'liveSquadApiSuccess':api_ok,'liveSquadDirectSuccess':direct_ok,'playerCount':len(players),'ratingModel':'GCP calibrated market-age-position v2'});payload['meta']=meta;players.sort(key=lambda p:(-val(p.get('overall')),-val(p.get('value')),p.get('name','')));p_path.write_text(json.dumps(payload,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
     if m_path.exists():
-        db=json.loads(m_path.read_text(encoding='utf-8'));db.update({k:meta[k] for k in ('gameSnapshot','liveSquadsSyncedAt','liveSquadClubsSuccess','liveSquadClubsFailed','liveSquadApiSuccess','liveSquadDirectSuccess','playerCount')});m_path.write_text(json.dumps(db,ensure_ascii=False,indent=2),encoding='utf-8')
+        db=json.loads(m_path.read_text(encoding='utf-8'));db.update({k:meta[k] for k in ('gameSnapshot','liveSquadsSyncedAt','liveSquadClubsSuccess','liveSquadClubsFailed','liveSquadApiSuccess','liveSquadDirectSuccess','playerCount','ratingModel')});m_path.write_text(json.dumps(db,ensure_ascii=False,indent=2),encoding='utf-8')
     print(f'Live merge: {success} clubs ({api_ok} API, {direct_ok} direct), {failed} preserved from weekly data, {updated} updated, {added} added')
 if __name__=='__main__':main()
