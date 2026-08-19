@@ -2,6 +2,7 @@ import {processPlayerMatch,recoverAndDevelop} from './player-career.js';
 import {simulateWorldTick} from './world-sim.js';
 import {processKnockoutResult,nationalTeamWorldNews} from './competition-engine.js';
 import {ensureBoardState,sponsorMonthlyPayment,financialCompliance} from './board-engine.js';
+import {runFreeAgencyTick} from './free-agent-system.js';
 
 function repairNonLeagueSummary(save,fixture,result){
  if(fixture.type==='LEAGUE'||!save.table)return false;
@@ -22,8 +23,10 @@ export function runPostMatchExtra(save,world,club,fixture,result,matchSquad,full
  const playerEvents=processPlayerMatch(save,result,fixture,matchSquad,fullSquad);
  recoverAndDevelop(save,fullSquad,fixture.date,save.facilities?.training||5,result.coachProfile?.youthDevelopment||60);
  const competitionEvent=processKnockoutResult(save,fixture,result,club);
- const worldEvents=save.plan2LastWorldTick===fixture.date?[]:simulateWorldTick(save,world,fixture.date,club.id);
+ const freeAgentEvents=runFreeAgencyTick(save,world,fixture.date,club.id);
+ const worldEvents=save.plan2LastWorldTick===fixture.date?freeAgentEvents:[...freeAgentEvents,...simulateWorldTick(save,world,fixture.date,club.id)];
  save.plan2LastWorldTick=fixture.date;
+ for(const e of freeAgentEvents){save.worldNews??=[];save.worldNews.unshift(e);save.news.unshift({date:e.date,title:e.title,body:e.body})}
  const sponsorPayment=sponsorMonthlyPayment(save,fixture.date);
  const financial=financialCompliance(save);
  if(financial.status==='BREACH_RISK'&&!save.board.lastFinancialWarningMonth?.startsWith(fixture.date.slice(0,7))){
