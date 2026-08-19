@@ -43,39 +43,58 @@ export function formationSlots(name='4-3-3'){return FORMATIONS[name]||FORMATIONS
 export function slotGroup(slot='CM'){if(slot==='GK')return'GK';if(['LB','RB','CB','LWB','RWB'].includes(slot))return'DEF';if(['DM','CM','AM','LM','RM'].includes(slot))return'MID';return'ATT'}
 
 function text(p){return `${p?.position||''} ${p?.subPosition||''} ${(p?.secondaryPositions||[]).join?.(' ')||''}`.toLowerCase()}
-export function playerRole(player){const s=text(player);if(/goal|keeper|goleiro/.test(s))return'GK';if(/centre-back|center-back|defen|left-back|right-back|full-back|zague|lateral/.test(s))return'DEF';if(/midfield|meia|volante|wing-back/.test(s))return'MID';return'ATT'}
+const hasLeft=s=>/left[- ]back|left wing[- ]back|left[- ]mid|left winger|left forward|lateral esquerdo|ponta esquerda/.test(s);
+const hasRight=s=>/right[- ]back|right wing[- ]back|right[- ]mid|right winger|right forward|lateral direito|ponta direita/.test(s);
+export function playerRole(player){const s=text(player);if(/goal|keeper|goleiro/.test(s))return'GK';if(/centre[- ]back|center[- ]back|central defender|defen|left[- ]back|right[- ]back|full[- ]back|wing[- ]back|zague|lateral/.test(s))return'DEF';if(/midfield|meia|volante|medio/.test(s))return'MID';return'ATT'}
 
 export function positionFit(player,slot){
  const s=text(player),g=slotGroup(slot),pg=playerRole(player);
- if(slot==='GK')return pg==='GK'?1:.42;
- if(pg==='GK')return .42;
+ if(slot==='GK')return pg==='GK'?1:.35;
+ if(pg==='GK')return .35;
  const tests={
-  CB:/centre-back|center-back|central defender|zague/,LB:/left-back|left back|lateral esquerdo/,RB:/right-back|right back|lateral direito/,
-  LWB:/left-back|left back|left wing-back|wing-back|lateral esquerdo/,RWB:/right-back|right back|right wing-back|wing-back|lateral direito/,
-  DM:/defensive midfield|holding midfield|volante/,CM:/central midfield|midfield|meia central/,AM:/attacking midfield|meia ofensivo|number 10/,
-  LM:/left midfield|left winger|winger esquerdo/,RM:/right midfield|right winger|winger direito/,
-  LW:/left winger|left forward|winger esquerdo/,RW:/right winger|right forward|winger direito/,ST:/centre-forward|center-forward|striker|second striker|forward|atacante/
+  CB:/centre[- ]back|center[- ]back|central defender|zague/,
+  LB:/left[- ]back|full[- ]back left|lateral esquerdo/,
+  RB:/right[- ]back|full[- ]back right|lateral direito/,
+  LWB:/left wing[- ]back|left[- ]back|lateral esquerdo/,
+  RWB:/right wing[- ]back|right[- ]back|lateral direito/,
+  DM:/defensive midfield|holding midfield|volante|defensive midfielder/,
+  CM:/central midfield|central midfielder|midfield|meia central|medio centro/,
+  AM:/attacking midfield|attacking midfielder|meia ofensivo|number 10|trequartista/,
+  LM:/left midfield|left midfielder|left winger|ponta esquerda/,
+  RM:/right midfield|right midfielder|right winger|ponta direita/,
+  LW:/left winger|left forward|ponta esquerda/,
+  RW:/right winger|right forward|ponta direita/,
+  ST:/centre[- ]forward|center[- ]forward|striker|second striker|atacante central|centroavante/
  };
- if(tests[slot]?.test(s))return 1;
+ if(tests[slot]?.test(s)){
+  if(['LB','LWB','LM','LW'].includes(slot)&&hasRight(s)&&!hasLeft(s))return .72;
+  if(['RB','RWB','RM','RW'].includes(slot)&&hasLeft(s)&&!hasRight(s))return .72;
+  return 1;
+ }
+ if(['LB','LWB','LM','LW'].includes(slot)&&hasRight(s)&&!hasLeft(s))return .68;
+ if(['RB','RWB','RM','RW'].includes(slot)&&hasLeft(s)&&!hasRight(s))return .68;
  if((slot==='LWB'&&tests.LB.test(s))||(slot==='RWB'&&tests.RB.test(s)))return .97;
- if((slot==='LW'||slot==='LM')&&/left-back|left wing-back/.test(s))return .92;
- if((slot==='RW'||slot==='RM')&&/right-back|right wing-back/.test(s))return .92;
- if((slot==='AM'||slot==='CM'||slot==='DM')&&pg==='MID')return .94;
- if((slot==='LW'||slot==='RW'||slot==='ST')&&pg==='ATT')return .93;
- if((slot==='LB'||slot==='RB'||slot==='CB'||slot==='LWB'||slot==='RWB')&&pg==='DEF')return .93;
- if(g===pg)return .9;
- if((g==='ATT'&&pg==='MID')||(g==='MID'&&pg==='ATT')||(g==='MID'&&pg==='DEF'))return .82;
- return .7;
+ if((slot==='LW'||slot==='LM')&&/left[- ]back|left wing[- ]back/.test(s))return .86;
+ if((slot==='RW'||slot==='RM')&&/right[- ]back|right wing[- ]back/.test(s))return .86;
+ if(slot==='CB'&&pg==='DEF')return .88;
+ if((slot==='LB'||slot==='RB')&&pg==='DEF')return .86;
+ if((slot==='AM'||slot==='CM'||slot==='DM')&&pg==='MID')return .93;
+ if((slot==='LW'||slot==='RW')&&pg==='ATT')return .89;
+ if(slot==='ST'&&pg==='ATT')return .90;
+ if(g===pg)return .84;
+ if((g==='ATT'&&pg==='MID')||(g==='MID'&&pg==='ATT')||(g==='MID'&&pg==='DEF'))return .76;
+ return .62;
 }
 
 export function fitLabel(fit){return fit>=.98?'Natural':fit>=.92?'Compatível':fit>=.82?'Adaptado':'Fora de posição'}
-export function effectiveOverall(player,slot){const base=Number(player?.overall||65),fit=positionFit(player,slot),penalty=Math.round((1-fit)*35);return clamp(base-penalty,35,99)}
+export function effectiveOverall(player,slot){const base=Number(player?.overall||65),fit=positionFit(player,slot),penalty=Math.round((1-fit)*42);return clamp(base-penalty,35,99)}
 
-function scoreForSlot(player,slot){const fit=positionFit(player,slot);return fit*100+(player.overall||65)*.8+(player.form||70)*.06+(player.energy||100)*.03}
-export function assignPlayersToFormation(players,formation='4-3-3',preferredIds=[]){
+export function lineupSlotScore(player,slot,{rotation=0}={}){const fit=positionFit(player,slot),ovr=Number(player?.overall||65),form=Number(player?.form??70),energy=Number(player?.energy??100),starter=Number(player?.starterPriority||0)+(player?.realLifeStarter?12:0),natural=fit>=.98?95:fit>=.92?50:fit>=.84?8:-80;return fit*420+natural+ovr*5.4+form*.12+energy*(.025+Math.max(0,rotation)*.05)+starter}
+function scoreForSlot(player,slot){return lineupSlotScore(player,slot)}
+export function assignPlayersToFormation(players,formation='4-3-3',preferredIds=[],options={}){
  const slots=formationSlots(formation),pool=(players||[]).filter(Boolean),preferred=new Map(preferredIds.map((id,i)=>[String(id),preferredIds.length-i])),used=new Set(),out=[];
  for(const [key,slot] of slots){
-  const candidates=pool.filter(p=>!used.has(String(p.id))).sort((a,b)=>(scoreForSlot(b,slot)+(preferred.get(String(b.id))||0)*.08)-(scoreForSlot(a,slot)+(preferred.get(String(a.id))||0)*.08));
+  const candidates=pool.filter(p=>!used.has(String(p.id))).sort((a,b)=>(lineupSlotScore(b,slot,options)+(preferred.get(String(b.id))||0)*.05)-(lineupSlotScore(a,slot,options)+(preferred.get(String(a.id))||0)*.05));
   const p=candidates[0]||null;if(p)used.add(String(p.id));out.push({key,slot,playerId:p?String(p.id):null});
  }
  return out;
