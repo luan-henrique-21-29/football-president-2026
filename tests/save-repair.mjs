@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {repairCareerSave} from '../src/save-repair.js';
+const save={clubId:131,clubName:'Barcelona',date:'bad-date',calendar:null,matches:null,news:null,transactions:null,table:null,coach:null,president:null,settings:null,playerContracts:null,playerState:null,playerCareer:null,worldTransferMarket:{negotiations:null},presidentLineup:{enabled:true,formation:'INVALID',slots:null},nextFixtureIndex:99,transferBudget:'oops'};
+const result=repairCareerSave(save);
+assert.equal(result.changed,true);
+assert.ok(Array.isArray(save.calendar));assert.ok(Array.isArray(save.matches));assert.ok(Array.isArray(save.news));
+assert.equal(save.coach.status,'INTERIM');assert.ok(save.coach.name);
+assert.equal(save.presidentLineup.enabled,false);assert.equal(save.presidentLineup.formation,'4-3-3');
+assert.equal(save.nextFixtureIndex,0);assert.equal(save.transferBudget,0);assert.match(save.date,/^20\d{2}-\d{2}-\d{2}$/);
+assert.ok(Array.isArray(save.worldTransferMarket.negotiations));assert.ok(Array.isArray(save.worldTransferMarket.completed));assert.ok(Array.isArray(save.worldTransferMarket.failed));
+console.log('Save repair tests passed');
