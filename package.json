@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/gameplay-smoke.mjs && node tests/lineup-smoke.mjs && node tests/match-depth.mjs && node tests/possession-smoke.mjs && node tests/current-data.mjs && node tests/world-market.mjs && node tests/injury-smoke.mjs && node tests/player-rating.mjs && node tests/club-rating.mjs && node tests/ui-shell-smoke.mjs && node tests/contract-market.mjs && node tests/depth-upgrade.mjs"
+    "test": "node tests/gameplay-smoke.mjs && node tests/lineup-smoke.mjs && node tests/match-depth.mjs && node tests/possession-smoke.mjs && node tests/current-data.mjs && node tests/world-market.mjs && node tests/injury-smoke.mjs && node tests/player-rating.mjs && node tests/club-rating.mjs && node tests/ui-shell-smoke.mjs && node tests/contract-market.mjs && node tests/depth-upgrade.mjs && node tests/club-names.mjs"
   }
 }
