@@ -1,7 +1,9 @@
 import * as core from './game-v5.js';
 import {applyPresidentLineup,lineupSignature} from './lineup-state.js';
+import {exactCoachSelection} from './exact-lineup.js';
 
 export * from './game-v5.js';
+export function coachSelection(squad,fixture,nextFixture,teamOverall,coach={}){return exactCoachSelection(core.coachSelection(squad,fixture,nextFixture,teamOverall,coach),squad,{fixture})}
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const hash=str=>[...String(str)].reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,2166136261)>>>0;
