@@ -1,36 +1,8 @@
 import './player-extra-data.js';
-import {state,SNAPSHOT} from './state.js';
+import {state,SNAPSHOT,normalizedName,esc} from './state.js';
 import {frontPreferences} from './preferences-ui.js';
 import {t} from './preferences.js';
-
-const ART='20260818-9';
-export function cover(){
-  const has=!!state.save;
-  const status=state.loadingWorld
-    ? 'Carregando base mundial…'
-    : state.world?.status==='world'
-      ? `${state.world.clubs.length} clubes disponíveis`
-      : 'Base local ativa';
-  return `<section class="cd-cover-screen light-identity">
-    <img class="cd-cover-art" src="./assets/brand/club-dynasty-26-cover.webp?v=${ART}" alt="Capa de futebol do Golaço Clash President" />
-    <div class="cd-cover-vignette"></div>
-    <div class="cd-cover-ui">
-      <div class="cd-cover-brand">
-        <div class="gcp-cover-brandmark" aria-label="Golaço Clash President">
-          <div class="gcp-emblem" aria-hidden="true"><span>G</span></div>
-          <div class="gcp-wordmark"><strong>GOLAÇO <em>CLASH</em></strong><b>PRESIDENT</b></div>
-        </div>
-        <div class="cd-cover-copy">
-          <span>DATABASE ${SNAPSHOT.split('-').reverse().join('/')}</span>
-          <p>Você manda no clube. O treinador monta o time. O mercado, a torcida e os resultados respondem às suas decisões.</p>
-        </div>
-      </div>
-      <div class="cd-cover-actions">
-        ${has?`<button class="cd-action primary" id="continueCareer"><strong>${t('continue').toUpperCase()}</strong><span>Voltar à sua carreira</span><i>›</i></button>`:''}
-        <button class="cd-action ${has?'glass':'primary'}" id="newCareer"><strong>${(has?t('newCareer'):t('startCareer')).toUpperCase()}</strong><span>${has?'Começar outra presidência':'Assumir o controle de um clube'}</span><i>›</i></button>
-      </div>
-      ${frontPreferences()}
-      <div class="cd-cover-status"><span class="status-dot ${state.loadingWorld?'loading':state.world?.status==='world'?'ok':'warn'}"></span>${status}</div>
-    </div>
-  </section>`;
-}
+const ARENA='https://commons.wikimedia.org/wiki/Special:Redirect/file/NeoQuimicaArena%20%281%29.jpg?width=3840';
+function findPlayer(name){const q=normalizedName(name);return(state.world?.players||[]).find(p=>normalizedName(p.name)===q)||(state.world?.players||[]).find(p=>normalizedName(p.name).includes(q)||q.includes(normalizedName(p.name)))}
+function portrait(name,label){const p=findPlayer(name),src=p?.image||p?.imageUrl||p?.playerImage||'';return `<div class="gcp-cover-player">${src?`<img src="${esc(src)}" alt="${esc(p?.name||name)}" loading="eager" decoding="async" referrerpolicy="no-referrer" onerror="this.remove();this.parentElement.classList.add('fallback')">`:''}<span>${label.slice(0,1)}</span><b>${esc(label)}</b></div>`}
+export function cover(){const has=!!state.save,status=state.loadingWorld?'Carregando base mundial…':state.world?.status==='world'?`${state.world.clubs.length} clubes disponíveis`:'Base local ativa';return `<section class="gcp-cover-screen"><img class="gcp-arena-cover" src="${ARENA}" alt="Neo Química Arena em Itaquera" loading="eager" decoding="async"><div class="gcp-cover-shade"></div><div class="gcp-cover-trio" aria-label="Garro, Memphis e Yuri Alberto">${portrait('Rodrigo Garro','GARRO')}${portrait('Memphis Depay','MEMPHIS')}${portrait('Yuri Alberto','YURI')}</div><div class="gcp-cover-ui"><div class="gcp-cover-title"><div class="gcp-emblem" aria-hidden="true"><span>G</span></div><div><strong>GOLAÇO</strong><em>CLASH</em></div></div><div class="gcp-cover-copy"><span>DATABASE ${SNAPSHOT.split('-').reverse().join('/')}</span><p>Presidência, mercado, treinador e futebol em uma carreira que continua mudando.</p></div><div class="cd-cover-actions">${has?`<button class="cd-action primary" id="continueCareer"><strong>${t('continue').toUpperCase()}</strong><span>Voltar à sua carreira</span><i>›</i></button>`:''}<button class="cd-action ${has?'glass':'primary'}" id="newCareer"><strong>${(has?t('newCareer'):t('startCareer')).toUpperCase()}</strong><span>${has?'Começar outra carreira':'Assumir um clube'}</span><i>›</i></button></div>${frontPreferences()}<div class="cd-cover-status"><span class="status-dot ${state.loadingWorld?'loading':state.world?.status==='world'?'ok':'warn'}"></span>${status}</div><small class="gcp-cover-credit">Arena: FotografoWallacyFerrari / Wikimedia Commons · CC BY 4.0</small></div></section>`}
