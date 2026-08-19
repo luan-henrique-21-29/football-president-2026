@@ -1,0 +1,22 @@
+const DAY=86400000;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const hash=s=>[...String(s)].reduce((h,c)=>Math.imul(h^c.charCodeAt(0),16777619)>>>0,2166136261)>>>0;
+const unit=(seed,n)=>(((Math.imul(seed^(n*2654435761),1664525)+1013904223)>>>0)/4294967296);
+const addDays=(date,days)=>{const d=new Date(`${date}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)};
+export const INJURY_CATALOG=[
+ {id:'KNOCK',name:'Pancada',area:'contusão',min:2,max:5,severity:'LEVE',weight:23},
+ {id:'OVERLOAD',name:'Sobrecarga muscular',area:'muscular',min:4,max:10,severity:'LEVE',weight:20},
+ {id:'ANKLE',name:'Entorse no tornozelo',area:'tornozelo',min:8,max:21,severity:'MODERADA',weight:16},
+ {id:'CALF',name:'Lesão na panturrilha',area:'panturrilha',min:10,max:24,severity:'MODERADA',weight:13},
+ {id:'HAMSTRING',name:'Lesão posterior de coxa',area:'posterior da coxa',min:14,max:35,severity:'MODERADA',weight:15},
+ {id:'SHOULDER',name:'Lesão no ombro',area:'ombro',min:10,max:28,severity:'MODERADA',weight:6},
+ {id:'KNEE',name:'Lesão ligamentar no joelho',area:'joelho',min:45,max:150,severity:'GRAVE',weight:4},
+ {id:'FRACTURE',name:'Fratura',area:'óssea',min:35,max:95,severity:'GRAVE',weight:3}
+];
+function weightedCatalog(r){let total=INJURY_CATALOG.reduce((s,x)=>s+x.weight,0),v=r*total;for(const x of INJURY_CATALOG){v-=x.weight;if(v<=0)return x}return INJURY_CATALOG.at(-1)}
+function participantMinutes(p){if(Number(p.subMinute)>0)return clamp(90-Number(p.subMinute),1,38);return clamp(Number(p.replacedAt||90),1,90)}
+function activeParticipants(result){const starters=result?.plan?.starters||[],bench=(result?.plan?.bench||[]).filter(p=>Number(p.subMinute)>0);return [...starters,...bench].filter((p,i,a)=>a.findIndex(x=>String(x.id)===String(p.id))===i)}
+function injuryRisk(save,result,p,minutes){const career=save?.playerCareer?.[p.id]||{},energy=Number(p.energy??career.energy??100),age=Number(p.age||25),press=Number(result?.plan?.coachProfile?.pressing||55),tempo=Number(result?.plan?.coachProfile?.tempo||result?.plan?.coachProfile?.intensity||55),medical=Number(save?.staff?.medicalLevel||5),training=Number(save?.facilities?.training||5),pitch=Number(save?.facilities?.pitch||5),previous=Number(career.injuries||0);let risk=.0048;risk+=Math.max(0,70-energy)*.00028;risk+=Math.max(0,minutes-60)*.000075;risk+=Math.max(0,press-65)*.00009+risk*0;risk+=Math.max(0,tempo-65)*.00007;if(age>=30)risk+=(age-29)*.00032;if(previous>=2)risk+=Math.min(.004,previous*.00045);risk+=Math.max(0,6-medical)*.00055+risk*0;risk+=Math.max(0,5-training)*.00025+risk*0;risk+=Math.max(0,5-pitch)*.0003;risk-=Math.max(0,medical-5)*.00035;risk-=Math.max(0,training-5)*.00016;risk-=Math.max(0,pitch-5)*.00018;return clamp(risk,.0015,.032)}
+export function buildMatchInjuryEvents({save,fixture,result}){if(!save||!fixture||!result)return[];const list=activeParticipants(result),events=[];for(const [i,p] of list.entries()){const career=save.playerCareer?.[p.id]||{};if(career.injuryUntil&&career.injuryUntil>fixture.date)continue;const minutes=participantMinutes(p),seed=hash(`${save.clubId}|${fixture.date}|${fixture.opponentId||fixture.opponentName}|${p.id}|injury-v2`),risk=injuryRisk(save,result,p,minutes);if(unit(seed,1)>risk)continue;const type=weightedCatalog(unit(seed,2)),medical=Number(save.staff?.medicalLevel||5),recoveryFactor=clamp(1.08-(medical-4)*.035,.72,1.1),raw=type.min+Math.floor(unit(seed,3)*(type.max-type.min+1)),days=Math.max(2,Math.round(raw*recoveryFactor)),minute=clamp(8+Math.floor(unit(seed,4)*Math.max(12,minutes-8)),8,Math.min(88,minutes)),until=addDays(fixture.date,days);events.push({type:'INJURY',team:'USER',minute,playerId:String(p.id),playerName:p.name,injuryId:type.id,injuryName:type.name,area:type.area,severity:type.severity,days,until,risk:Number((risk*100).toFixed(2)),text:`${p.name} sente ${type.area} e precisa de atendimento.`});if(events.length>=2)break}return events.sort((a,b)=>a.minute-b.minute)}
+export function injuryStage(detail,date){if(!detail?.until)return null;const left=Math.max(0,Math.ceil((new Date(`${detail.until}T12:00:00Z`)-new Date(`${date}T12:00:00Z`))/DAY));const total=Math.max(1,Number(detail.days||left||1)),ratio=left/total;if(left<=0)return'LIBERADO';if(ratio>.55)return'TRATAMENTO';if(ratio>.18)return'REABILITAÇÃO';return'RECONDICIONAMENTO'}
+export function daysUntil(date,until){return Math.max(0,Math.ceil((new Date(`${until}T12:00:00Z`)-new Date(`${date}T12:00:00Z`))/DAY))}
