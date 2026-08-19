@@ -2,7 +2,7 @@ import { state,initState,ensurePlayers,createCareerFromForm,persist } from './st
 import { clubPage,calendarPage,newsPage,databasePage } from './views.js';
 import { cover } from './brand-ui.js';
 import { setup,frame } from './shell-v2.js';
-import { squadPage } from './squad-v4.js';
+import { squadPage } from './squad-v5.js';
 import { coachPage } from './coach-v4.js';
 import { marketPage } from './market-v3.js';
 import { dashboardPage } from './dashboard-v7.js';
