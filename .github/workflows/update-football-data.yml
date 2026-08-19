@@ -3,7 +3,7 @@ name: Update football database
 on:
   workflow_dispatch:
   schedule:
-    - cron: '20 6 * * 1'
+    - cron: '20 6 * * *'
   push:
     branches: [main]
     paths:
@@ -11,6 +11,7 @@ on:
       - 'scripts/build_datapack.py'
       - 'scripts/sync_live_squads.py'
       - 'scripts/sync_coaches.py'
+      - 'data/coach-overrides.json'
 
 permissions:
   contents: write
@@ -44,7 +45,6 @@ jobs:
         run: python scripts/sync_live_squads.py
 
       - name: Refresh current coaches
-        continue-on-error: true
         run: python scripts/sync_coaches.py
 
       - name: Validate generated data
@@ -56,14 +56,17 @@ jobs:
           for name in ['players.json','clubs-world.json','database-meta.json','coaches.json','transfers.json']:
               p=Path('data')/name
               if not p.exists(): raise SystemExit(f'Missing {p}')
-              json.loads(p.read_text(encoding='utf-8'))
+              data=json.loads(p.read_text(encoding='utf-8'))
+              if name=='coaches.json':
+                  rows=data.get('records',[])
+                  if not rows or any(not str(r.get('name','')).strip() for r in rows): raise SystemExit('Coach database contains missing names')
               print('OK',p)
           PY
 
       - name: Commit datapack
         shell: bash
         run: |
-          git config user.name 'club-dynasty-data-bot'
+          git config user.name 'golaco-clash-data-bot'
           git config user.email 'actions@users.noreply.github.com'
           git add data/players.json data/clubs-world.json data/database-meta.json data/coaches.json data/transfers.json
           git diff --cached --quiet && exit 0
