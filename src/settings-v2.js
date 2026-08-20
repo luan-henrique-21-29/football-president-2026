@@ -1,5 +1,22 @@
-import {settingsPage as baseSettingsPage} from './management-pages.js';
-import {getPreferences,currencyOptions,languageOptions,exchangeMeta,t} from './preferences.js';
+import {state} from './state.js';
+import {getPreferences,currencyOptions,languageOptions,exchangeMeta} from './preferences.js';
 import {getMatchAudio} from './match-audio.js';
-export function settingsPage(){const p=getPreferences(),fx=exchangeMeta();let base=baseSettingsPage();base=base.replace(/<div class="field"><label>Moeda<\/label><select id="currencySetting">[\s\S]*?<\/select><\/div>/,'<input type="hidden" id="currencySetting" value="'+p.currency+'">');base=base.replace('<button class="button secondary" id="savePreferences">Salvar preferências</button>',`${preferencePanel(p,fx)}<button class="button secondary" id="savePreferences">Salvar preferências da carreira</button>`);return base}
-function preferencePanel(p,fx){const match=getMatchAudio();return `<div class="cd-game-settings"><div class="cd-setting-title"><div><span class="eyebrow">GOLAÇO CLASH</span><h2>Preferências do jogo</h2><p>Idioma, moeda e áudio são aplicados imediatamente.</p></div><button class="button ghost" data-open-terms="true">${t('terms')}</button></div><div class="cd-setting-grid"><label><span>${t('currency')}</span><select data-pref="currency" id="gameCurrency">${currencyOptions().map(x=>`<option value="${x.code}" ${x.code===p.currency?'selected':''}>${x.label}</option>`).join('')}</select><small>Economia interna em EUR, exibição convertida.</small></label><label><span>${t('language')}</span><select data-pref="language" id="gameLanguage">${languageOptions().map(x=>`<option value="${x.code}" ${x.code===p.language?'selected':''}>${x.label}</option>`).join('')}</select><small>Menus principais e decisões mudam na hora.</small></label><label><span>Som da interface</span><select data-pref="sound" id="gameSound"><option value="true" ${p.sound?'selected':''}>Ligado</option><option value="false" ${!p.sound?'selected':''}>Desligado</option></select><small>Botões, confirmações e avisos. Desligar aqui silencia tudo.</small></label><label><span>Efeitos da partida</span><select data-match-audio id="matchSound"><option value="true" ${match.enabled!==false?'selected':''}>Ligado</option><option value="false" ${match.enabled===false?'selected':''}>Desligado</option></select><div class="cd-volume-row"><small>Gol, cartão, lesão, impedimento e apito.</small><button type="button" class="button ghost compact" id="matchSoundTest">Testar gol</button></div></label><label><span>Volume geral</span><input data-pref="volume" id="gameVolume" type="range" min="0" max="1" step="0.05" value="${p.volume}"><div class="cd-volume-row"><small>${Math.round(p.volume*100)}%</small><button type="button" class="button ghost compact" id="gameSoundTest">Testar interface</button></div></label></div><div class="cd-rate-note"><b>Câmbio</b><span>Base EUR • referência ${fx.date||'—'} • ${fx.source||'ECB'}</span></div></div>`}
+
+export function settingsPage(){
+  const pref=getPreferences(),match=getMatchAudio(),fx=exchangeMeta(),speed=Number(state.save?.settings?.matchSpeed||1);
+  return `<section class="gcp-simple-settings">
+    <div class="hero"><div><span class="eyebrow">CONFIGURAÇÕES</span><h1>Preferências do jogo</h1><p>Só o que afeta a experiência. Sem configuração desnecessária.</p></div></div>
+    <div class="card cd-game-settings">
+      <div class="cd-setting-grid">
+        <label><span>Idioma</span><select data-pref="language" id="gameLanguage">${languageOptions().map(x=>`<option value="${x.code}" ${x.code===pref.language?'selected':''}>${x.label}</option>`).join('')}</select></label>
+        <label><span>Moeda</span><select data-pref="currency" id="gameCurrency">${currencyOptions().map(x=>`<option value="${x.code}" ${x.code===pref.currency?'selected':''}>${x.label}</option>`).join('')}</select></label>
+        <label><span>Som da interface</span><select data-pref="sound" id="gameSound"><option value="true" ${pref.sound?'selected':''}>Ligado</option><option value="false" ${!pref.sound?'selected':''}>Desligado</option></select></label>
+        <label><span>Efeitos da partida</span><select data-match-audio id="matchSound"><option value="true" ${match.enabled!==false?'selected':''}>Ligado</option><option value="false" ${match.enabled===false?'selected':''}>Desligado</option></select><button type="button" class="button ghost compact" id="matchSoundTest">Testar gol</button></label>
+        <label><span>Volume</span><input data-pref="volume" id="gameVolume" type="range" min="0" max="1" step="0.05" value="${pref.volume}"><small>${Math.round(pref.volume*100)}%</small></label>
+        <label><span>Velocidade padrão da partida</span><select id="defaultMatchSpeed">${[1,2,4,8].map(x=>`<option value="${x}" ${speed===x?'selected':''}>${x}x</option>`).join('')}</select></label>
+      </div>
+      <div class="cd-rate-note"><span>Câmbio: ${fx.date||'—'} • ${fx.source||'ECB'}</span></div>
+      <button class="button big" id="savePreferences">Salvar configurações</button>
+    </div>
+  </section>`;
+}
