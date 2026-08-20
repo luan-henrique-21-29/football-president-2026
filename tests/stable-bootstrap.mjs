@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const index=fs.readFileSync('index.html','utf8');
+const app=fs.readFileSync('src/app-stable.js','utf8');
+assert.match(index,/app-stable\.js\?v=20260820-51/,'production must use stable bootstrap');
+assert.doesNotMatch(index,/src\/app\.js\?v=20260820-51/,'legacy eager app must not be the production entry');
+assert.match(app,/async function load\(/,'core screens must lazy-load');
+assert.match(app,/market:async/,'market must be isolated behind lazy route');
+assert.match(app,/contracts:async/,'contracts must be isolated behind lazy route');
+assert.match(app,/failedPage\(/,'a broken page must not crash the whole career');
+assert.match(app,/CORE_PAGES/,'old routes must be normalized to the stable core');
+console.log('stable bootstrap ok');
