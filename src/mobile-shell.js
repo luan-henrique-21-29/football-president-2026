@@ -1,12 +1,26 @@
 import {state} from './state.js';
-import {t,getLanguage} from './preferences.js';
-const extras={
- 'pt-BR':{more:'Mais',notifications:'Notificações',world:'Mercado Mundial',offers:'Propostas',scouts:'Olheiros',contracts:'Contratos'},
- 'en-US':{more:'More',notifications:'Notifications',world:'World Market',offers:'Offers',scouts:'Scouts',contracts:'Contracts'},
- 'es-ES':{more:'Más',notifications:'Notificaciones',world:'Mercado Mundial',offers:'Ofertas',scouts:'Ojeadores',contracts:'Contratos'},
- 'fr-FR':{more:'Plus',notifications:'Notifications',world:'Marché mondial',offers:'Offres',scouts:'Recruteurs',contracts:'Contrats'},
- 'it-IT':{more:'Altro',notifications:'Notifiche',world:'Mercato mondiale',offers:'Offerte',scouts:'Scout',contracts:'Contratti'},
- 'de-DE':{more:'Mehr',notifications:'Benachrichtigungen',world:'Weltmarkt',offers:'Angebote',scouts:'Scouts',contracts:'Verträge'}
-};
-export function mobileDock(){const x=extras[getLanguage()]||extras['pt-BR'],main=[['dashboard','⌂',t('dashboard')],['squad','◎',t('squad')],['calendar','▶',t('calendar')],['market','⇄',t('market')]],more=[['contracts','✎',x.contracts],['coach','◇',t('coach')],['notifications','♢',x.notifications],['inbox','⇩',x.offers],['world','◎',x.world],['scouting','⌕',x.scouts],['standings','≡',t('standings')],['career','★',t('career')],['settings','⚙',t('settings')]];const btn=([id,icon,label])=>`<button class="${state.page===id?'active':''}" data-page="${id}"><i>${icon}</i><span>${label}</span></button>`;return `<nav class="gcp-mobile-dock" aria-label="Navegação principal">${main.map(btn).join('')}<button data-mobile-more class="${more.some(x=>x[0]===state.page)?'active':''}"><i>•••</i><span>${x.more}</span></button></nav><div class="gcp-mobile-more" hidden><button class="gcp-more-close" data-mobile-close aria-label="Fechar">×</button><div class="gcp-more-grid">${more.map(btn).join('')}</div></div>`}
-export function bindMobileShell(){document.querySelector('[data-mobile-more]')?.addEventListener('click',()=>{const d=document.querySelector('.gcp-mobile-more');if(d)d.hidden=false});document.querySelector('[data-mobile-close]')?.addEventListener('click',()=>{const d=document.querySelector('.gcp-mobile-more');if(d)d.hidden=true});document.querySelector('.gcp-mobile-more')?.addEventListener('click',e=>{if(e.target.classList.contains('gcp-mobile-more'))e.currentTarget.hidden=true})}
+
+const MAIN=[
+  ['dashboard','⌂','Início'],
+  ['squad','◎','Plantel'],
+  ['calendar','▶','Jogos'],
+  ['market','⇄','Mercado'],
+  ['contracts','✎','Contratos']
+];
+const MORE=[
+  ['coach','◇','Técnico'],
+  ['inbox','⇩','Propostas'],
+  ['notifications','♢','Notificações'],
+  ['settings','⚙','Configurações']
+];
+const button=([id,icon,label])=>`<button class="${state.page===id?'active':''}" data-page="${id}" ${state.page===id?'aria-current="page"':''}><i>${icon}</i><span>${label}</span></button>`;
+
+export function mobileDock(){
+  return `<nav class="gcp-mobile-dock" aria-label="Navegação principal">${MAIN.map(button).join('')}<button data-mobile-more class="${MORE.some(x=>x[0]===state.page)?'active':''}"><i>•••</i><span>Mais</span></button></nav><div class="gcp-mobile-more" hidden><button class="gcp-more-close" data-mobile-close aria-label="Fechar">×</button><div class="gcp-more-grid">${MORE.map(button).join('')}</div></div>`;
+}
+export function bindMobileShell(){
+  const layer=document.querySelector('.gcp-mobile-more');
+  document.querySelector('[data-mobile-more]')?.addEventListener('click',()=>{if(layer)layer.hidden=false});
+  document.querySelector('[data-mobile-close]')?.addEventListener('click',()=>{if(layer)layer.hidden=true});
+  layer?.addEventListener('click',event=>{if(event.target===layer)layer.hidden=true});
+}
