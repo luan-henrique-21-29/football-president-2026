@@ -1,1 +1,1 @@
-export * from './match-viewer-v10.js';
+export * from './match-viewer-v8.js';
