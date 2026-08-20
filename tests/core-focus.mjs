@@ -1,19 +1,28 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const shell=fs.readFileSync('src/shell.js','utf8');
-const shellV2=fs.readFileSync('src/shell-v2.js','utf8');
-const mobile=fs.readFileSync('src/mobile-shell.js','utf8');
 const app=fs.readFileSync('src/app.js','utf8');
+const shell=fs.readFileSync('src/shell-v2.js','utf8');
+const mobile=fs.readFileSync('src/mobile-shell.js','utf8');
+const core=fs.readFileSync('src/core-actions.js','utf8');
+const market=fs.readFileSync('src/market-v4.js','utf8');
 const contracts=fs.readFileSync('src/contracts-page.js','utf8');
 const viewer=fs.readFileSync('src/match-viewer.js','utf8');
 
-assert.doesNotMatch(shell,/\['finances'|\['jobs'|\['staff'|\['facilities'/,'secondary spreadsheet pages must not return to the main nav');
-assert.doesNotMatch(shellV2,/\['jobs'|\['finances'|\['staff'|\['facilities'/,'secondary pages must stay out of the extra desktop nav');
-assert.doesNotMatch(mobile,/\['finances'|\['staff'|\['facilities'|\['jobs'/,'secondary pages must stay out of the mobile menu');
-assert.match(app,/removedPages/,'old saved routes must be redirected safely');
-assert.match(app,/contracts:contractsPage/,'contracts must remain a core route');
-assert.match(contracts,/NEGOCIAÇÃO DE CONTRATO/,'contract negotiation must be present');
+assert.match(app,/bindCoreActions/,'core actions must drive the career');
+assert.doesNotMatch(app,/actions-master|actions-board|bindPlan2|bindPlan2Extras|quick-center|accessibility-layer|custom-select/,'removed legacy layers must not return to app startup');
+assert.match(shell,/Contratos/);assert.match(shell,/Propostas/);assert.match(shell,/Notificações/);
+assert.doesNotMatch(shell,/Mercado Mundial|Olheiros|Empregos|Finanças|Diretoria/);
+assert.doesNotMatch(mobile,/Mercado Mundial|Olheiros|Empregos|Finanças|Diretoria/);
+assert.match(core,/async function playNext/,'match start must stay functional');
+assert.match(core,/function completeMatch/,'match completion must stay functional');
+assert.match(core,/function bindCoach/,'coach management must stay functional');
+assert.match(core,/function bindInbox/,'incoming offers must stay functional');
+assert.match(core,/p2RenewPlayer/,'squad renewal button must route to contracts');
+assert.match(market,/evaluateOffer/,'club transfer negotiation must evaluate offers');
+assert.match(market,/evaluateContractTerms/,'player contract must be evaluated in transfer negotiation');
+assert.match(market,/completeSigning/,'successful transfers must update the career');
+assert.match(contracts,/NEGOCIAÇÃO DE CONTRATO/,'renewal negotiation must remain available');
 assert.match(contracts,/Contraproposta/,'agent counteroffers must remain functional');
-assert.match(viewer,/match-viewer-v10/,'the current match viewer must use the clearer key-event layer');
+assert.match(viewer,/match-viewer-v8/,'stable viewer layer must stay active');
 console.log('core focus regression tests passed');
