@@ -1,12 +1,12 @@
 {
   "base": "EUR",
-  "date": "2026-09-15",
+  "date": "2026-09-16",
   "source": "European Central Bank reference rates",
   "rates": {
     "EUR": 1.0,
-    "USD": 1.1539,
-    "GBP": 0.8558,
-    "BRL": 5.944
+    "USD": 1.1537,
+    "GBP": 0.8574,
+    "BRL": 5.9368
   },
   "note": "Display conversion only. Club Dynasty 26 stores its internal economy in EUR to keep saves stable."
 }
