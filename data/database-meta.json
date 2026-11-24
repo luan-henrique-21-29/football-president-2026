@@ -1,17 +1,17 @@
 {
-  "gameSnapshot": "2026-11-23",
-  "syncedAt": "2026-11-23T18:12:35Z",
+  "gameSnapshot": "2026-11-24",
+  "syncedAt": "2026-11-24T17:47:35Z",
   "source": "dcaribou/transfermarkt-datasets (weekly Transfermarkt dataset)",
-  "playerCount": 19636,
+  "playerCount": 19340,
   "clubCount": 796,
   "transferCount": 6771,
-  "lineupUsagePairs": 13804,
+  "lineupUsagePairs": 13802,
   "lineupUsageWindowDays": 240,
   "ratingModel": "GCP calibrated market-age-position v2",
   "overallNote": "OVR e potencial são índices internos do Golaço Clash. Valores de mercado, contratos, transferências e frequência de titularidade vêm do datapack de futebol; titularidade recente é usada como contexto, enquanto posição natural e OVR continuam decidindo a escalação.",
-  "liveSquadsSyncedAt": "2026-11-23T18:16:05Z",
-  "liveSquadClubsSuccess": 96,
-  "liveSquadClubsFailed": 50,
+  "liveSquadsSyncedAt": "2026-11-24T17:49:41Z",
+  "liveSquadClubsSuccess": 0,
+  "liveSquadClubsFailed": 146,
   "liveSquadApiSuccess": 0,
-  "liveSquadDirectSuccess": 96
+  "liveSquadDirectSuccess": 0
 }
